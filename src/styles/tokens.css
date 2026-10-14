@@ -1,0 +1,259 @@
+/* ==========================================================================
+   tokens.css — "Shop Manual" design tokens (draft v0.1)
+   ethanaustincruse.com
+
+   Usage (src/app/globals.css):
+     @import "tailwindcss";
+     @import "./tokens.css";
+
+   Layers:
+     1. Primitives  raw palette; never referenced by components
+     2. Semantic    runtime CSS vars that change with the theme (--bg, --ink, --accent...)
+     3. Dark theme  remaps the semantic layer only
+     4. @theme      Tailwind v4 bridge + static tokens (type, fonts, easing)
+
+   Contrast (WCAG 2.x) was checked against bg, surface and sunken in each theme:
+     *-text / ink tokens   >= 4.5:1, safe for body text and links
+     *-signal tokens       decoration only on light (dots, rules, LEDs, focus)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. PRIMITIVES
+   -------------------------------------------------------------------------- */
+:root {
+  /* Paper (light neutrals) */
+  --paper-50:  #F6F4EF;  /* raised surface / cards */
+  --paper-100: #EDEAE3;  /* page background */
+  --paper-200: #E3DFD6;  /* sunken: code blocks, wells */
+  --paper-300: #CFCAC0;  /* hairlines */
+  --paper-400: #A39E94;  /* strong rules, disabled */
+
+  /* Graphite (dark neutrals) */
+  --graphite-500: #625E56;  /* muted text on paper: 4.9–5.9:1 */
+  --graphite-700: #3A3835;
+  --graphite-750: #4A4743;
+  --graphite-800: #2A2826;
+  --graphite-850: #1F1E1C;
+  --graphite-900: #1C1B19;  /* primary ink: 12.9–15.7:1 */
+  --graphite-950: #161514;
+  --bone:         #E8E1D4;  /* ink on dark: 11.3–14:1 */
+  --bone-muted:   #9A9488;  /* muted on dark: 4.9–6:1 */
+
+  /* Signal orange: the signature accent */
+  --orange-signal: #FF4F00;  /* decoration on light (2.7:1); text-safe on dark (4.5–5.5:1) */
+  --orange-text:   #B03A0A;  /* links/text on light: 4.6–5.5:1 */
+  --orange-press:  #9C3209;  /* hover/active on light: 5.5–6.7:1 */
+  --orange-soft:   #FF6A2B;  /* links/text on dark: 5.1–6.4:1 */
+
+  /* Secondary accents: one job each, use sparingly */
+  --led-signal:     #2BB673;  /* live / on / success dot (decoration) */
+  --led-text:       #1A6B43;  /* on light: 4.9–5.9:1 */
+  --led-dark:       #3DDC84;  /* on dark: 8.2–10.2:1 */
+
+  --blueprint-text: #1D4ED8;  /* diagrams, architecture callouts, on light: 5–6.1:1 */
+  --blueprint-dark: #7AA2FF;  /* on dark: 5.9–7.3:1 */
+
+  --caution-signal: #F2C230;  /* tape stripes, highlights, selection */
+  --caution-text:   #7A5C00;  /* on light: 4.7–5.7:1 */
+
+  --fault-text:     #B42318;  /* errors on light: 4.9–6:1 */
+  --fault-dark:     #FF6B5E;  /* errors on dark: 5.3–6.5:1 */
+}
+
+/* --------------------------------------------------------------------------
+   2. SEMANTIC TOKENS (light, default)
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg:       var(--paper-100);
+  --surface:  var(--paper-50);
+  --sunken:   var(--paper-200);
+  --inverse:  var(--graphite-900);  /* black spec-label chips, inverted blocks */
+
+  /* Text */
+  --ink:          var(--graphite-900);
+  --ink-muted:    var(--graphite-500);
+  --ink-inverse:  var(--paper-100);
+  --ink-disabled: var(--paper-400);
+
+  /* Lines */
+  --hairline: var(--paper-300);
+  --rule:     var(--paper-400);
+  --strong:   var(--graphite-900);  /* 1px "inked" dividers */
+
+  /* Accent */
+  --accent:       var(--orange-signal);  /* decoration */
+  --accent-text:  var(--orange-text);    /* links, inline emphasis */
+  --accent-press: var(--orange-press);
+  --on-accent:    #FFFFFF;               /* text on an --accent-text fill: 6.1:1 */
+
+  /* Secondary accents */
+  --live:           var(--led-signal);
+  --live-text:      var(--led-text);
+  --diagram:        var(--blueprint-text);
+  --highlight:      var(--caution-signal);
+  --highlight-text: var(--caution-text);
+  --error:          var(--fault-text);
+
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   3. DARK THEME ("Night Shift")
+   Follows the system by default; <html data-theme="light|dark"> overrides it.
+   The two blocks are intentionally identical; edit them together.
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: var(--graphite-950);  --surface: var(--graphite-850);  --sunken: var(--graphite-800);
+    --inverse: var(--paper-100);
+    --ink: var(--bone);  --ink-muted: var(--bone-muted);
+    --ink-inverse: var(--graphite-900);  --ink-disabled: var(--graphite-700);
+    --hairline: var(--graphite-700);  --rule: var(--graphite-750);  --strong: var(--bone);
+    --accent: var(--orange-signal);  --accent-text: var(--orange-soft);
+    --accent-press: var(--orange-signal);  --on-accent: var(--graphite-950);
+    --live: var(--led-dark);  --live-text: var(--led-dark);
+    --diagram: var(--blueprint-dark);
+    --highlight: var(--caution-signal);  --highlight-text: var(--caution-signal);
+    --error: var(--fault-dark);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--graphite-950);  --surface: var(--graphite-850);  --sunken: var(--graphite-800);
+  --inverse: var(--paper-100);
+  --ink: var(--bone);  --ink-muted: var(--bone-muted);
+  --ink-inverse: var(--graphite-900);  --ink-disabled: var(--graphite-700);
+  --hairline: var(--graphite-700);  --rule: var(--graphite-750);  --strong: var(--bone);
+  --accent: var(--orange-signal);  --accent-text: var(--orange-soft);
+  --accent-press: var(--orange-signal);  --on-accent: var(--graphite-950);
+  --live: var(--led-dark);  --live-text: var(--led-dark);
+  --diagram: var(--blueprint-dark);
+  --highlight: var(--caution-signal);  --highlight-text: var(--caution-signal);
+  --error: var(--fault-dark);
+}
+
+/* --------------------------------------------------------------------------
+   4. TAILWIND v4 BRIDGE + STATIC TOKENS
+   `inline` makes utilities reference the runtime vars, so theme switching works.
+   Utilities: bg-bg, bg-surface, text-ink, text-ink-muted, border-hairline,
+   text-accent-text, bg-accent, font-mono, text-label, text-display, ease-snap ...
+   -------------------------------------------------------------------------- */
+@theme inline {
+  /* Colors: map runtime vars into Tailwind's color namespace */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-inverse: var(--inverse);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-ink-disabled: var(--ink-disabled);
+  --color-hairline: var(--hairline);
+  --color-rule: var(--rule);
+  --color-strong: var(--strong);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-press: var(--accent-press);
+  --color-on-accent: var(--on-accent);
+  --color-live: var(--live);
+  --color-live-text: var(--live-text);
+  --color-diagram: var(--diagram);
+  --color-highlight: var(--highlight);
+  --color-highlight-text: var(--highlight-text);
+  --color-error: var(--error);
+
+  /* Fonts: --font-sans-loaded / --font-mono-loaded come from next/font in layout.tsx */
+  --font-sans: var(--font-sans-loaded, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded, "IBM Plex Mono"), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@theme {
+  /* Type scale (fluid between ~360px and ~1280px viewports) */
+  --text-label: 0.75rem;                                        /* mono spec labels, UPPERCASE */
+  --text-label--letter-spacing: 0.08em;
+  --text-label--line-height: 1.2;
+  --text-sm: 0.875rem;
+  --text-base: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);        /* 16 → 17px */
+  --text-base--line-height: 1.6;
+  --text-lg: clamp(1.125rem, 1.05rem + 0.35vw, 1.3125rem);
+  --text-lg--line-height: 1.45;
+  --text-xl: clamp(1.375rem, 1.2rem + 0.8vw, 1.875rem);
+  --text-xl--line-height: 1.3;
+  --text-display: clamp(2.25rem, 1.6rem + 2.9vw, 4rem);         /* hero name */
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.025em;
+
+  /* Restraint: light display, regular body, medium for emphasis. No bold. */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+
+  /* Hardware feel: square corners. Use radius-xs only for tiny keys/chips. */
+  --radius-xs: 2px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);        /* entrances, hovers */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* mode switch, camera moves */
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);    /* toggles/relays: slight overshoot */
+}
+
+/* --------------------------------------------------------------------------
+   NON-TAILWIND TOKENS (use in plain CSS or arbitrary values: w-[var(--measure)])
+   -------------------------------------------------------------------------- */
+:root {
+  /* Layout */
+  --gutter: clamp(1rem, 0.6rem + 1.8vw, 2rem);   /* never below 16px on phones */
+  --section-gap: clamp(3rem, 2rem + 4vw, 6rem);
+  --measure: 65ch;                                /* max prose line length */
+  --container: 72rem;
+
+  /* Borders: hairlines instead of shadows */
+  --border-hairline: 1px solid var(--hairline);
+  --border-ink: 1px solid var(--strong);
+
+  /* Durations */
+  --dur-instant: 80ms;   /* press feedback */
+  --dur-fast: 160ms;     /* hover, color */
+  --dur-base: 240ms;     /* panels, reveals */
+  --dur-slow: 480ms;     /* mode transitions */
+
+  /* Layers */
+  --z-sticky: 10;    /* mode switch / nav */
+  --z-overlay: 50;   /* menus, terminal overlay */
+  --z-toast: 100;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BASE
+   -------------------------------------------------------------------------- */
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--caution-signal);  /* caution-tape yellow, readable in both themes */
+    color: var(--graphite-900);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}

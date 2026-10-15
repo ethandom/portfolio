@@ -6,7 +6,7 @@ import {
   getProfile,
   getProjects,
 } from ".";
-import { profileSchema, projectSchema } from "./schemas";
+import { experienceSchema, profileSchema, projectSchema } from "./schemas";
 
 // Loading everything is the build-time validation: any bad frontmatter throws here.
 describe("content", () => {
@@ -81,6 +81,24 @@ describe("schemas", () => {
       resume: "javascript:alert(1)",
     });
     expect(r.success).toBe(false);
+  });
+
+  it("rejects figure ids no feature can draw", () => {
+    expect(projectSchema.shape.figure.safeParse("orrery").success).toBe(false);
+    expect(
+      experienceSchema.shape.figure.safeParse({ id: "orrery", title: "x" })
+        .success,
+    ).toBe(false);
+    expect(
+      experienceSchema.shape.figure.safeParse({ id: "data-pipeline", title: "" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-https demo", () => {
+    expect(
+      experienceSchema.shape.demo.safeParse("http://example.com/a.mp4").success,
+    ).toBe(false);
   });
 });
 

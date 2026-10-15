@@ -6,17 +6,14 @@ import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr";
 import { DocLine, DocLineItem, SectionHeader, StatusChip } from "@/components/manual";
 import { Reveal, ScrambleText } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { getExperience, getProfile, getProject } from "@/lib/content";
+import { DemoVideo, EntryFigure, WorkHistory } from "@/features/experience";
+import { getExperience, getProfile } from "@/lib/content";
 import { ThemeSwitch } from "../_components/theme-switch";
-import { ServiceLog } from "./_components/accordion";
-import { DemoVideo } from "./_components/demo-video";
-import { CONTURO_DEMO, Featured } from "./_components/featured";
 import { Rail } from "./_components/rail";
 import { RailCard } from "./_components/rail-card";
-import { EntryFigure } from "./_components/shared";
 
 export const metadata: Metadata = {
-  title: "Service History Layouts",
+  title: "Work History Layouts",
   robots: { index: false, follow: false },
 };
 
@@ -24,13 +21,13 @@ const MOCKUPS = [
   {
     id: "featured",
     title: "A · Featured + log",
-    meta: "Option",
+    meta: "On /",
     lede: "The current role is printed open and reads top to bottom: who and what, the product running full width, then the core points and tools. Past roles sit underneath as a service log: the core points always show, numbers marked, and each figure folds out on demand. The page scrolls normally, and it reads the same on a phone.",
   },
   {
     id: "rail",
     title: "B · Rail",
-    meta: "Option",
+    meta: "Reference",
     lede: "Every role is a card on one sideways track, newest first. The current role is the wide lead car with the demo; past roles follow, each with its figure already open. The track scrolls inside its own frame (swipe, arrow keys, or the segment bar), so the page never scrolls sideways.",
   },
 ] as const;
@@ -66,14 +63,13 @@ export default function ExperienceLabPage() {
 
   const profile = getProfile();
   const [current, ...past] = getExperience();
-  const project = current.project ? getProject(current.project) : undefined;
 
   return (
     <div className="mx-auto w-full max-w-(--container) px-(--gutter) pb-24">
       <DocLine data-power-on>
         <DocLineItem emphasis>{profile.name}</DocLineItem>
         <DocLineItem>
-          <ScrambleText trigger="mount" text="Service history layouts" />
+          <ScrambleText trigger="mount" text="Work history layouts" />
         </DocLineItem>
         <DocLineItem>
           <ScrambleText trigger="mount" text="p. 00d" />
@@ -82,9 +78,9 @@ export default function ExperienceLabPage() {
 
       <header className="grid gap-8 pt-12 pb-16 sm:pt-20">
         <div className="max-w-(--measure)">
-          <h1 className="text-display font-light">Service history layouts</h1>
+          <h1 className="text-display font-light">Work history layouts</h1>
           <p className="mt-4 text-lg text-ink-muted">
-            Two ways to print chapter 03. Conturo is the current role and leads
+            Two ways to print chapter 02. Conturo is the current role and leads
             with the product itself. Each past role gets a figure that shows
             the work instead of describing it.
           </p>
@@ -111,13 +107,12 @@ export default function ExperienceLabPage() {
 
       <div className="grid grid-cols-1 gap-(--section-gap)">
         <Chapter index={1} {...MOCKUPS[0]}>
-          <SectionHeader index={3} title="Service History" meta={`${past.length + 1} entries`} />
-          <Featured entry={current} project={project} />
-          <ServiceLog entries={past} firstFigure={5} />
+          {/* The shipped chapter, exactly as it sits on the Manual page. */}
+          <WorkHistory chapter={2} />
         </Chapter>
 
         <Chapter index={2} {...MOCKUPS[1]}>
-          <SectionHeader index={3} title="Service History" meta={`${past.length + 1} entries`} />
+          <SectionHeader index={2} title="Work History" meta={`${past.length + 1} entries`} />
           <Rail labels={[current, ...past].map((e) => e.org)}>
             <RailCard
               entry={current}
@@ -125,7 +120,9 @@ export default function ExperienceLabPage() {
               wide
               status={<StatusChip state="live">Current</StatusChip>}
             >
-              <DemoVideo src={CONTURO_DEMO} label={`${current.org} product demo`} />
+              {current.demo && (
+                <DemoVideo src={current.demo} label={`${current.org} product demo`} />
+              )}
             </RailCard>
             {past.map((entry, i) => (
               <RailCard key={entry.slug} entry={entry} index={i + 1}>

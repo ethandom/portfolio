@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { SpecLabel } from "@/components/manual";
 import type { Experience } from "@/lib/content";
 import { cn } from "@/lib/cn";
-import { CorePoints, PeriodLine, entryNo } from "./shared";
+import { CorePoints, PeriodLine, entryNo } from "@/features/experience";
 
 /** One car on the rail: a log card with its figure under the core points. */
 export function RailCard({
@@ -29,7 +29,7 @@ export function RailCard({
     >
       <div className="flex min-w-0 flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <SpecLabel tone="inverse">{entryNo(index)}</SpecLabel>
+          <SpecLabel tone="inverse">{entryNo(2, index)}</SpecLabel>
           {status}
           <PeriodLine entry={entry} />
         </div>

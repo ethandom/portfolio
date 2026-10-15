@@ -123,8 +123,9 @@ const NETWORK: Glyph = {
 };
 
 /**
- * Mockup-only: what each stack item does, and its mark.
- * If a layout that uses this ships, the table moves into /content.
+ * Every tool a `stack` in /content names: what it does, and its mark.
+ * Keyed by the exact name the content uses; an unknown name still prints,
+ * as a two-letter monogram on an ink cap.
  * Tools without a mark in simple-icons get a printed monogram instead,
  * in the brand color when the brand has one (`hex`).
  */

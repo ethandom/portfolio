@@ -6,13 +6,11 @@ import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr";
 import { DocLine, DocLineItem, SectionHeader } from "@/components/manual";
 import { Reveal, ScrambleText } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { getFeaturedProjects, getProfile, getProject } from "@/lib/content";
+import { Projects } from "@/features/projects";
+import { getProfile, getProject } from "@/lib/content";
 import { ThemeSwitch } from "../_components/theme-switch";
 import { Datasheet } from "./_components/datasheet";
 import { Exploded } from "./_components/exploded";
-import { Spread } from "./_components/spread";
-import { SpreadBook } from "./_components/spread-book";
-import { entryNo } from "./_components/shared";
 
 export const metadata: Metadata = {
   title: "Project Layouts",
@@ -26,7 +24,7 @@ const MOCKUPS = [
   {
     id: "spread",
     title: "A · Spread",
-    meta: "Chosen",
+    meta: "On /",
     lede: "An open manual, pinned while you read it. The left page is the record: name, impact, the tools it was built with, then the live site or repo. The right page is the project itself, running, where there is one (the relay driver drives a live board from a relayctl prompt), or else its ratings. Scrolling turns the page to the next project. On phones, with reduced motion, or when a spread is taller than the screen, the spreads stack instead.",
   },
   {
@@ -82,7 +80,6 @@ export default function ProjectsLabPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
   const profile = getProfile();
-  const featured = getFeaturedProjects();
   const projects = SAMPLES.map((slug) => getProject(slug)).filter(
     (p) => p !== undefined,
   );
@@ -103,9 +100,9 @@ export default function ProjectsLabPage() {
         <div className="max-w-(--measure)">
           <h1 className="text-display font-light">Project layouts</h1>
           <p className="mt-4 text-lg text-ink-muted">
-            Three ways to print chapter 02, Projects. A, the spread, is the
+            Three ways to print chapter 03, Projects. A, the spread, is the
             pick; B and C stay here for reference. Work experience is a separate
-            chapter, 03 Service History, and never appears in these components.
+            chapter, 02 Work History, and never appears in these components.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -130,25 +127,8 @@ export default function ProjectsLabPage() {
 
       <div className="grid grid-cols-1 gap-(--section-gap)">
         <Chapter index={1} {...MOCKUPS[0]}>
-          {/* As it will sit on the Manual page. */}
-          <SectionHeader
-            index={2}
-            title="Projects"
-            meta={`${featured.length} entries`}
-          />
-          <SpreadBook
-            chapter={2}
-            title="Projects"
-            entries={featured.map((p, i) => ({
-              slug: p.slug,
-              no: entryNo(i),
-              title: p.title,
-            }))}
-          >
-            {featured.map((p, i) => (
-              <Spread key={p.slug} project={p} index={i} />
-            ))}
-          </SpreadBook>
+          {/* The shipped chapter, exactly as it sits on the Manual page. */}
+          <Projects chapter={3} />
         </Chapter>
         <Chapter index={2} {...MOCKUPS[1]}>
           {projects.map((p, i) => (

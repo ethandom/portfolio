@@ -7,6 +7,9 @@ period:
   start: 2025-01
   end: 2025-02
 order: 2
+figure:
+  id: gradient-descent
+  title: Gradient descent
 stack: [Java, Linear Algebra, Machine Learning]
 project: chess-engine
 highlights:

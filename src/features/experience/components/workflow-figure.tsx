@@ -9,11 +9,10 @@ import {
   TrayIcon,
   type IconProps,
 } from "@phosphor-icons/react";
-import { Figure } from "@/components/manual";
+import { Figure, StackMark } from "@/components/manual";
 import { prefersReducedMotion, timeScale } from "@/components/motion/preference";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { StackMark } from "../../projects/_components/stack-marks";
 
 /*
  * The data pipeline as a workflow canvas, in the manner of a node editor:

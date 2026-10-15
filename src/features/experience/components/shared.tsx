@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
-import { SpecLabel } from "@/components/manual";
-import { formatPeriod, type Experience, type Period } from "@/lib/content";
+import { SpecLabel, StackMark } from "@/components/manual";
+import {
+  formatPeriod,
+  type Experience,
+  type ExperienceFigure,
+  type Period,
+} from "@/lib/content";
 import { cn } from "@/lib/cn";
-import { StackMark } from "../../projects/_components/stack-marks";
 import { DescentFigure } from "./descent-figure";
 import { WorkflowFigure } from "./workflow-figure";
 
-/** Entry number inside chapter 03, Service History: "03.1". */
-export function entryNo(index: number) {
-  return `03.${index + 1}`;
+/** Entry number inside a chapter: entry 1 of chapter 3 is "03.1". */
+export function entryNo(chapter: number, index: number) {
+  return `${String(chapter).padStart(2, "0")}.${index + 1}`;
 }
 
 /** "2 mos", "1 yr 1 mo". Open periods already read "Present", so they get none. */
@@ -46,25 +50,26 @@ export function Emphasis({ text }: { text: string }) {
 }
 
 /**
- * The Figs. that show each past role instead of telling it, one chip each.
- * Lab-local; moves into /content (as figure keys) when this ships.
+ * The drawing behind each `figure` id in /content. Each one shows a past
+ * role instead of telling it; the content names the chip that opens it.
  */
-type EntryFig = { chip: string; Fig: (props: { number: number }) => ReactNode };
-const FIGURES: Record<string, EntryFig[]> = {
-  google: [{ chip: "Gradient descent", Fig: DescentFigure }],
-  "center-for-puppetry-arts": [{ chip: "Data pipeline", Fig: WorkflowFigure }],
+const FIGURES: Record<
+  ExperienceFigure,
+  (props: { number: number }) => ReactNode
+> = {
+  "gradient-descent": DescentFigure,
+  "data-pipeline": WorkflowFigure,
 };
 
 /** The entry's figures, numbered from `first`. */
 export function entryFigures(entry: Experience, first: number) {
-  return (FIGURES[entry.slug] ?? []).map(({ chip, Fig }, i) => ({
-    chip,
-    figure: <Fig number={first + i} />,
-  }));
+  if (!entry.figure) return [];
+  const Fig = FIGURES[entry.figure.id];
+  return [{ chip: entry.figure.title, figure: <Fig number={first} /> }];
 }
 
 export function figureCount(entry: Experience) {
-  return FIGURES[entry.slug]?.length ?? 0;
+  return entry.figure ? 1 : 0;
 }
 
 /** The entry's lead figure (the rail shows one per card). */

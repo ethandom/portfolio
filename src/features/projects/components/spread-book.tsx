@@ -6,6 +6,13 @@ import { cn } from "@/lib/cn";
 
 type Entry = { slug: string; no: string; title: string };
 
+/**
+ * Smallest the pinned header and book may shrink to fit a short screen.
+ * Any smaller and the type stops reading as body text, so it stacks instead.
+ */
+const MIN_SCALE = 0.7;
+/** Where the header and book pin: this far below the top of the screen (px). */
+const PIN_TOP = 24;
 /** Viewport scrolled per page turn, as a fraction of its height. */
 const TURN = 0.9;
 /** Share of each turn's scroll the book holds still before and after turning. */
@@ -41,8 +48,9 @@ function thicken(edge: HTMLElement | null, count: number) {
 }
 
 /**
- * Chapter 02, Projects: pins the project spreads as one bound book and
- * turns the pages with the scroll.
+ * The Projects chapter: pins the chapter header and the project spreads,
+ * bound as one book, and turns the pages with the scroll. Header and book
+ * hold still together while pinned, so the book never drifts off its header.
  *
  * It opens closed, on its front cover. The first turn swings the cover open
  * onto the first spread; after that each turn lifts one right page on the
@@ -51,20 +59,26 @@ function thicken(edge: HTMLElement | null, count: number) {
  * shadows, only an ink tint.
  *
  * The server renders the spreads stacked. The book only takes over on wide
- * screens, with motion allowed, and when the tallest spread fits the screen.
+ * screens, with motion allowed. On a screen too short for header and book,
+ * the book scales down to fit under its full-width header (to MIN_SCALE;
+ * below that it stacks).
  */
 export function SpreadBook({
   chapter,
   title,
   entries,
+  header,
   children,
 }: {
   chapter: number;
   title: string;
   entries: Entry[];
+  /** The chapter header, pinned with the book. */
+  header: ReactNode;
   children: ReactNode;
 }) {
   const runway = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLDivElement>(null);
   const pin = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLDivElement>(null);
@@ -78,7 +92,9 @@ export function SpreadBook({
   const [mode, setMode] = useState<"stack" | "book">("stack");
   /** The open spread; -1 while the book is closed. */
   const [current, setCurrent] = useState(-1);
+  /** The pinned block's height on screen, after scaling. */
   const [height, setHeight] = useState(0);
+  const [scale, setScale] = useState(1);
   const n = entries.length;
   /** The cover's turn, then one per page. */
   const turns = n;
@@ -95,10 +111,15 @@ export function SpreadBook({
         mode === "book"
           ? el.offsetHeight
           : Math.max(...spreads.map((s) => s.offsetHeight));
-      const pinned = tallest + LEAVES * STEP_Y + BOARD;
-      const fits = pinned <= window.innerHeight - 24;
-      setHeight(pinned);
-      setMode(fits ? "book" : "stack");
+      // The header rides along: its height plus the 2rem gap under it.
+      const above = (head.current?.offsetHeight ?? 0) + 32;
+      // Only the book shrinks; the header keeps the full chapter width.
+      const bound = tallest + LEAVES * STEP_Y + BOARD;
+      const room = window.innerHeight - 2 * PIN_TOP - above;
+      const fit = Math.min(1, room / bound);
+      setScale(fit);
+      setHeight(above + bound * fit);
+      setMode(fit >= MIN_SCALE ? "book" : "stack");
     };
     decide();
     window.addEventListener("resize", decide);
@@ -156,9 +177,7 @@ export function SpreadBook({
     const draw = () => {
       frame = 0;
       const travel = track.offsetHeight - pinned.offsetHeight;
-      const top =
-        track.getBoundingClientRect().top -
-        (window.innerHeight - pinned.offsetHeight) / 2;
+      const top = track.getBoundingClientRect().top - PIN_TOP;
       // 0 = closed on the cover; t = spread t - 1 open.
       const q = clamp01(-top / travel) * turns;
 
@@ -250,10 +269,7 @@ export function SpreadBook({
       return;
     }
     const travel = track.offsetHeight - pinned.offsetHeight;
-    const start =
-      track.getBoundingClientRect().top +
-      window.scrollY -
-      (window.innerHeight - pinned.offsetHeight) / 2;
+    const start = track.getBoundingClientRect().top + window.scrollY - PIN_TOP;
     window.scrollTo({ top: start + (travel * (i + 1)) / turns, behavior });
   };
 
@@ -270,103 +286,111 @@ export function SpreadBook({
     >
       <div
         ref={pin}
-        style={
-          mode === "book"
-            ? { top: `calc((100svh - ${height}px) / 2)` }
-            : undefined
-        }
+        style={mode === "book" ? { top: PIN_TOP, height } : undefined}
         className={cn("grid grid-cols-1", mode === "book" && "sticky")}
       >
-        <div
-          ref={book}
-          // A link on a covered page turns the book to it.
-          onFocusCapture={(event) => {
-            if (mode !== "book") return;
-            const spread = (event.target as HTMLElement).closest(
-              "[data-spread]",
-            );
-            const i = [
-              ...(book.current?.querySelectorAll("[data-spread]") ?? []),
-            ].indexOf(spread as Element);
-            if (i >= 0 && i !== current) goTo(i, "auto");
-          }}
-          className={cn(
-            "grid grid-cols-1",
-            mode === "book"
-              ? cn(
-                  "relative isolate [&>[data-spread]]:[grid-area:1/1]",
-                  // In the book each page carries its own edge, so what lies
-                  // under a turning page (the cover board, the block) shows.
-                  "[&>[data-spread]]:border-transparent [&>[data-spread]]:bg-transparent",
-                  "[&_[data-page=verso]]:border-y [&_[data-page=verso]]:border-l [&_[data-page=verso]]:border-strong",
-                  "[&_[data-page=recto]]:border-y [&_[data-page=recto]]:border-r [&_[data-page=recto]]:border-strong",
-                )
-              : "gap-16",
-          )}
-        >
-          {mode === "book" && (
-            <>
-              {/*
-               * Boards: the back board under the right block; the front
-               * board's inside under the left one once open. draw() sizes
-               * both to their block.
-               */}
-              <div
-                ref={backBoard}
-                aria-hidden
-                className={cn("pointer-events-none absolute -z-20", board)}
-                style={{ top: 2, left: SPINE }}
-              />
-              <div
-                ref={insideBoard}
-                aria-hidden
-                className={cn("pointer-events-none absolute -z-20", board)}
-                style={{ top: -2, right: SPINE }}
-              />
-
-              {/*
-               * The page block: leaves fanned out past the outer edge and the
-               * foot of each page, one hairline per leaf. Flat paper, no shadow.
-               */}
-              {(["left", "right"] as const).map((side) => (
+        <div className="grid grid-cols-1 gap-8">
+          <div ref={head}>{header}</div>
+          <div
+            ref={book}
+            // Scaled from its top edge, so it stays tucked under the header.
+            style={
+              mode === "book" && scale < 1
+                ? {
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top center",
+                  }
+                : undefined
+            }
+            // A link on a covered page turns the book to it.
+            onFocusCapture={(event) => {
+              if (mode !== "book") return;
+              const spread = (event.target as HTMLElement).closest(
+                "[data-spread]",
+              );
+              const i = [
+                ...(book.current?.querySelectorAll("[data-spread]") ?? []),
+              ].indexOf(spread as Element);
+              if (i >= 0 && i !== current) goTo(i, "auto");
+            }}
+            className={cn(
+              "grid grid-cols-1",
+              mode === "book"
+                ? cn(
+                    "relative isolate [&>[data-spread]]:[grid-area:1/1]",
+                    // In the book each page carries its own edge, so what lies
+                    // under a turning page (the cover board, the block) shows.
+                    "[&>[data-spread]]:border-transparent [&>[data-spread]]:bg-transparent",
+                    "[&_[data-page=verso]]:border-y [&_[data-page=verso]]:border-l [&_[data-page=verso]]:border-strong",
+                    "[&_[data-page=recto]]:border-y [&_[data-page=recto]]:border-r [&_[data-page=recto]]:border-strong",
+                  )
+                : "gap-16",
+            )}
+          >
+            {mode === "book" && (
+              <>
+                {/*
+                 * Boards: the back board under the right block; the front
+                 * board's inside under the left one once open. draw() sizes
+                 * both to their block.
+                 */}
                 <div
-                  key={side}
+                  ref={backBoard}
                   aria-hidden
-                  ref={(el) => {
-                    edges.current[side] = el;
-                  }}
-                  className="pointer-events-none absolute inset-0 -z-10"
-                >
-                  {Array.from({ length: LEAVES }, (_, i) => LEAVES - i).map(
-                    (k) => (
-                      <span
-                        key={k}
-                        data-leaf={k}
-                        className={cn(
-                          "absolute border bg-surface",
-                          k === 1 ? "border-rule" : "border-hairline",
-                        )}
-                        style={{
-                          top: k * 0.5,
-                          bottom: -k * STEP_Y,
-                          [side]: -k * STEP_X,
-                          width: `calc((100% - 1rem) / 2 + ${k * STEP_X}px)`,
-                        }}
-                      />
-                    ),
-                  )}
-                </div>
-              ))}
+                  className={cn("pointer-events-none absolute -z-20", board)}
+                  style={{ top: 2, left: SPINE }}
+                />
+                <div
+                  ref={insideBoard}
+                  aria-hidden
+                  className={cn("pointer-events-none absolute -z-20", board)}
+                  style={{ top: -2, right: SPINE }}
+                />
 
-              <FrontCover
-                ref={cover}
-                chapter={chapter}
-                title={title}
-                entries={entries}
-              />
-            </>
-          )}
-          {children}
+                {/*
+                 * The page block: leaves fanned out past the outer edge and the
+                 * foot of each page, one hairline per leaf. Flat paper, no shadow.
+                 */}
+                {(["left", "right"] as const).map((side) => (
+                  <div
+                    key={side}
+                    aria-hidden
+                    ref={(el) => {
+                      edges.current[side] = el;
+                    }}
+                    className="pointer-events-none absolute inset-0 -z-10"
+                  >
+                    {Array.from({ length: LEAVES }, (_, i) => LEAVES - i).map(
+                      (k) => (
+                        <span
+                          key={k}
+                          data-leaf={k}
+                          className={cn(
+                            "absolute border bg-surface",
+                            k === 1 ? "border-rule" : "border-hairline",
+                          )}
+                          style={{
+                            top: k * 0.5,
+                            bottom: -k * STEP_Y,
+                            [side]: -k * STEP_X,
+                            width: `calc((100% - 1rem) / 2 + ${k * STEP_X}px)`,
+                          }}
+                        />
+                      ),
+                    )}
+                  </div>
+                ))}
+
+                <FrontCover
+                  ref={cover}
+                  chapter={chapter}
+                  title={title}
+                  entries={entries}
+                />
+              </>
+            )}
+            {children}
+          </div>
         </div>
       </div>
     </div>

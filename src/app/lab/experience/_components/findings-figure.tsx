@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { Figure } from "@/components/manual";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useFirstView } from "./use-first-view";
+// Not the barrel: it also exports the server-only chapter.
+import { useFirstView } from "@/features/experience/components/use-first-view";
 
 /** Mentors by role, never by name. */
 const MENTORS = [

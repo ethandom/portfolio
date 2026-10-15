@@ -4,7 +4,7 @@ import { LogRow } from "./log-row";
 import { CorePoints, PeriodLine, Tools, entryFigures, figureCount } from "./shared";
 
 /**
- * Mockup A's log: one row per past role. The core points and tools always
+ * The service log: one row per past role. The core points and tools always
  * show; each figure folds out from its chip under the role.
  */
 export function ServiceLog({

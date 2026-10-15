@@ -9,6 +9,7 @@ stack: [C, Linux Kernel, USB, FTDI, Make]
 status: shipped
 featured: true
 order: 2
+figure: relay-rig
 highlights:
   - Kernel module that binds to the board's FTDI FT232R chip and exposes each board as /dev/usbrelayN, using a one-byte relay mask ABI.
   - Enables FTDI bit-bang mode with vendor USB control requests, so all 256 output states fit in a single byte write.

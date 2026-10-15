@@ -5,7 +5,12 @@ import { ChipList, Figure, SpecLabel, SpecTable } from "@/components/manual";
 import { DrawSvg, Reveal } from "@/components/motion";
 import type { Project } from "@/lib/content";
 import { DIAGRAMS, NODE_H, type DiagramNode } from "./exploded-diagrams";
-import { ProjectLinks, ProjectStatus, entryNo } from "./shared";
+// Not the barrel: it also exports the server-only chapter.
+import {
+  ProjectLinks,
+  ProjectStatus,
+  entryNo,
+} from "@/features/projects/components/project-links";
 
 /** Numbered square callout tag, the way a parts diagram labels a component. */
 function Tag({
@@ -116,7 +121,7 @@ export function Exploded({
     >
       <Reveal className="grid grid-cols-1 gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
-          <SpecLabel as="p">{entryNo(index)}</SpecLabel>
+          <SpecLabel as="p">{entryNo(3, index)}</SpecLabel>
           <h3
             id={`exploded-${project.slug}`}
             className="mt-2 text-xl font-light"

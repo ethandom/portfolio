@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import type { Project } from "@/lib/content";
 import { cn } from "@/lib/cn";
 
-/** Entry number inside chapter 02, Projects: "02.1". */
-export function entryNo(index: number) {
-  return `02.${index + 1}`;
+/** Entry number inside a chapter: entry 1 of chapter 3 is "03.1". */
+export function entryNo(chapter: number, index: number) {
+  return `${String(chapter).padStart(2, "0")}.${index + 1}`;
 }
 
 export function ProjectStatus({ project }: { project: Project }) {

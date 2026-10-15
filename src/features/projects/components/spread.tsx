@@ -1,10 +1,10 @@
-import { SpecLabel, SpecTable } from "@/components/manual";
-import { formatPeriod, type Project } from "@/lib/content";
+import type { ReactNode } from "react";
+import { SpecLabel, SpecTable, StackMark } from "@/components/manual";
+import { formatPeriod, type Project, type ProjectFigure } from "@/lib/content";
 import { cn } from "@/lib/cn";
+import { ProjectLinks, entryNo } from "./project-links";
 import { RelayRig } from "./relay-rig";
-import { ProjectLinks, entryNo } from "./shared";
 import { SongVector } from "./song-vector";
-import { StackMark } from "./stack-marks";
 
 /** Running head and folio of one page of the spread. */
 function Page({
@@ -16,7 +16,7 @@ function Page({
   head: [string, string];
   folio: number;
   side: "verso" | "recto";
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div data-page={side} className="relative flex min-w-0 flex-col bg-surface">
@@ -47,37 +47,34 @@ function Page({
 const IMPACT_LINES = 3;
 
 /**
- * Mockup-only: a working figure for the projects that have one.
- * If this ships, which figure a project gets moves into /content.
+ * The drawing behind each `figure` id in /content, and what the recto's
+ * running head calls it: the project running ("Operation"), or the idea
+ * it's built on ("Principle").
  */
-const FIGURES: Partial<
-  Record<string, (props: { figure: string }) => React.ReactNode>
+const FIGURES: Record<
+  ProjectFigure,
+  { head: string; Fig: (props: { figure: string }) => ReactNode }
 > = {
-  "usb-relay-driver": RelayRig,
-};
-
-/** Mockup-only: a still figure that takes the ratings table's place on the recto. */
-const PLATES: Partial<
-  Record<string, (props: { figure: string }) => React.ReactNode>
-> = {
-  tempr: SongVector,
+  "relay-rig": { head: "Operation", Fig: RelayRig },
+  "song-vector": { head: "Principle", Fig: SongVector },
 };
 
 /**
- * Mockup A — one project as an open manual.
+ * One project as an open manual.
  * Verso: the record (name, impact, what it's built with, where to go next).
  * Recto: the thing itself, running; or its ratings when it has no figure.
  */
 export function Spread({
   project,
+  chapter,
   index,
 }: {
   project: Project;
+  chapter: number;
   index: number;
 }) {
   const folio = 4 + index * 2;
-  const Fig = FIGURES[project.slug];
-  const Plate = PLATES[project.slug];
+  const figure = project.figure ? FIGURES[project.figure] : undefined;
 
   return (
     <article
@@ -87,7 +84,7 @@ export function Spread({
       className="grid grid-cols-1 border border-strong bg-surface lg:grid-cols-[minmax(0,1fr)_1rem_minmax(0,1fr)]"
     >
       <Page
-        head={[entryNo(index), formatPeriod(project.period)]}
+        head={[entryNo(chapter, index), formatPeriod(project.period)]}
         folio={folio}
         side="verso"
       >
@@ -142,17 +139,12 @@ export function Spread({
       />
 
       <Page
-        head={[
-          Fig ? "Operation" : Plate ? "Principle" : "Ratings",
-          project.title,
-        ]}
+        head={[figure?.head ?? "Ratings", project.title]}
         folio={folio + 1}
         side="recto"
       >
-        {Fig ? (
-          <Fig figure={entryNo(index)} />
-        ) : Plate ? (
-          <Plate figure={entryNo(index)} />
+        {figure ? (
+          <figure.Fig figure={entryNo(chapter, index)} />
         ) : (
           project.metrics.length > 0 && (
             <SpecTable caption="Table — Ratings" rows={project.metrics} />

@@ -6,5 +6,6 @@ export { Led, led, type LedState } from "./led";
 export { SectionHeader } from "./section-header";
 export { SpecLabel, specLabel } from "./spec-label";
 export { SpecTable, type SpecRow } from "./spec-table";
+export { StackMark, partRole } from "./stack-mark";
 export { StatusChip, projectStatusLed } from "./status-chip";
 export { TapeStripe } from "./tape-stripe";

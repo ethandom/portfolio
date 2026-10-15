@@ -6,9 +6,6 @@ import { cn } from "@/lib/cn";
 import { DemoVideo } from "./demo-video";
 import { CorePoints, PeriodLine, Tools } from "./shared";
 
-export const CONTURO_DEMO =
-  "https://qqicbgjbwqxkekfghaud.supabase.co/storage/v1/object/public/Assets/ConturoDemo.mp4";
-
 /**
  * The current role, printed open and read top to bottom: who and what, the
  * product running full width, then what it did and what it's built with.
@@ -59,9 +56,11 @@ export function Featured({
           )}
         </div>
       </header>
-      <div className="px-3 sm:px-8">
-        <DemoVideo src={CONTURO_DEMO} label={`${entry.org} product demo`} />
-      </div>
+      {entry.demo && (
+        <div className="px-3 sm:px-8">
+          <DemoVideo src={entry.demo} label={`${entry.org} product demo`} />
+        </div>
+      )}
       <CorePoints
         entry={entry}
         className="gap-x-12 gap-y-4 p-5 sm:p-8 md:grid-cols-2"

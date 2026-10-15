@@ -53,9 +53,11 @@ export type {
   ActivitySnapshot,
   ActivitySource,
   Experience,
+  ExperienceFigure,
   Metric,
   Period,
   Profile,
   Project,
+  ProjectFigure,
   ProjectKind,
 } from "./schemas";

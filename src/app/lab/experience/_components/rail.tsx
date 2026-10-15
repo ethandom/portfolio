@@ -57,7 +57,7 @@ export function Rail({
         onScroll={onScroll}
         tabIndex={0}
         role="region"
-        aria-label="Service history, scrolls sideways"
+        aria-label="Work history, scrolls sideways"
         className="flex items-start snap-x snap-mandatory scroll-smooth gap-4 overflow-x-auto overscroll-x-contain pb-4 motion-reduce:scroll-auto [scrollbar-width:thin]"
       >
         {children}

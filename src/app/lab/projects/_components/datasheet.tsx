@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { ChipList, Figure, SpecLabel, SpecTable } from "@/components/manual";
 import { DrawSvg, Reveal } from "@/components/motion";
 import { formatPeriod, type Project } from "@/lib/content";
-import { ProjectLinks, ProjectStatus } from "./shared";
+import { ProjectLinks, ProjectStatus } from "@/features/projects";
 
 /** Mockup-only part numbers and the name printed on the package. */
 const PART: Record<string, [code: string, marking: string]> = {

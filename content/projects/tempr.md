@@ -12,7 +12,7 @@ featured: true
 order: 3
 figure: song-vector
 highlights:
-  - Our team of 4 placed 2nd in the GT Hacklytics Entertainment track, shipping a React Native app with Spotify sign-in in 36 hours.
+  - I placed 2nd in the GT Hacklytics Entertainment track, shipping a React Native app with Spotify sign-in in 36 hours.
   - I built a Tinder-style, short-form music discovery feature as the base for a vector-similarity recommendation engine over Spotify song vectors.
   - The team built multimodal Gemini pipelines that turn a text prompt or photo into a playlist through the Spotify API.
 metrics:

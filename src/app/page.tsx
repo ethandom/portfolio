@@ -4,10 +4,19 @@ import { WorkHistory } from "@/features/experience";
 import { Hero } from "@/features/hero";
 import { Projects } from "@/features/projects";
 import { Specifications } from "@/features/specs";
+import { siteConfig } from "@/config/site";
+import { getExperience, getProfile, getProjects } from "@/lib/content";
+import { JsonLd, personJsonLd } from "@/lib/seo";
 
 export default function ManualPage() {
+  const person = personJsonLd(
+    { profile: getProfile(), experience: getExperience(), projects: getProjects() },
+    siteConfig.url,
+  );
+
   return (
     <>
+      <JsonLd data={person} />
       <main className="mx-auto w-full max-w-(--container) px-(--gutter) pb-(--section-gap)">
         <Hero />
         <div className="grid grid-cols-1 gap-(--section-gap) pt-(--section-gap)">

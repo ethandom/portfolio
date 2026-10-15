@@ -1,6 +1,6 @@
 ---
 title: USB Relay Kernel Driver
-summary: A Linux kernel USB driver and CLI that switch SainSmart relay boards from a byte written to /dev.
+summary: A Linux kernel driver and CLI for USB relay boards.
 kind: [systems]
 period:
   start: 2025-10

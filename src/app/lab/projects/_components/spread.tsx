@@ -3,6 +3,7 @@ import { formatPeriod, type Project } from "@/lib/content";
 import { cn } from "@/lib/cn";
 import { RelayRig } from "./relay-rig";
 import { ProjectLinks, entryNo } from "./shared";
+import { SongVector } from "./song-vector";
 import { StackMark } from "./stack-marks";
 
 /** Running head and folio of one page of the spread. */
@@ -55,6 +56,13 @@ const FIGURES: Partial<
   "usb-relay-driver": RelayRig,
 };
 
+/** Mockup-only: a still figure that takes the ratings table's place on the recto. */
+const PLATES: Partial<
+  Record<string, (props: { figure: string }) => React.ReactNode>
+> = {
+  tempr: SongVector,
+};
+
 /**
  * Mockup A — one project as an open manual.
  * Verso: the record (name, impact, what it's built with, where to go next).
@@ -69,6 +77,7 @@ export function Spread({
 }) {
   const folio = 4 + index * 2;
   const Fig = FIGURES[project.slug];
+  const Plate = PLATES[project.slug];
 
   return (
     <article
@@ -91,11 +100,6 @@ export function Spread({
         <p className="mt-3 max-w-(--measure) text-base text-ink-muted">
           {project.summary}
         </p>
-        {project.role && (
-          <SpecLabel as="p" className="mt-3">
-            {project.role}
-          </SpecLabel>
-        )}
 
         <h4 className="sr-only">Impact</h4>
         <ol className="mt-6 border-t border-strong">
@@ -138,12 +142,17 @@ export function Spread({
       />
 
       <Page
-        head={[Fig ? "Operation" : "Ratings", project.title]}
+        head={[
+          Fig ? "Operation" : Plate ? "Principle" : "Ratings",
+          project.title,
+        ]}
         folio={folio + 1}
         side="recto"
       >
         {Fig ? (
           <Fig figure={entryNo(index)} />
+        ) : Plate ? (
+          <Plate figure={entryNo(index)} />
         ) : (
           project.metrics.length > 0 && (
             <SpecTable caption="Table — Ratings" rows={project.metrics} />

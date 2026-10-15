@@ -7,7 +7,7 @@ period:
 role: Founder, sole technical founder
 stack: [TypeScript, Hono, Zod, PostgreSQL, Deno, Playwright, OpenAI API, MCP]
 status: active
-featured: true
+featured: false
 order: 1
 highlights:
   - Shipped a REST API (Hono, Zod, PostgreSQL) that lets nonprofits move 100k+ contacts, each with 10–20 identity fields, between conturo.io and their CRM, email and analytics tools.

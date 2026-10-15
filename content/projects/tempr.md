@@ -1,6 +1,6 @@
 ---
 title: Tempr
-summary: Swipe-style music discovery that turns a text prompt or a photo into a Spotify playlist.
+summary: Swipe-to-discover music, built on Spotify.
 kind: [ai, web]
 period:
   start: 2026-02
@@ -12,7 +12,7 @@ featured: true
 order: 3
 highlights:
   - Our team of 4 placed 2nd in the GT Hacklytics Entertainment track, shipping a React Native app with Spotify sign-in in 36 hours.
-  - I owned the Tinder-style discovery feature, which ranks short song previews with heuristics over Spotify song vectors and caches them in Supabase.
+  - I built a Tinder-style, short-form music discovery feature as the base for a vector-similarity recommendation engine over Spotify song vectors.
   - The team built multimodal Gemini pipelines that turn a text prompt or photo into a playlist through the Spotify API.
 metrics:
   - label: Placement

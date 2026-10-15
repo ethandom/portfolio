@@ -20,10 +20,28 @@ const plexMono = IBM_Plex_Mono({
 
 export function generateMetadata(): Metadata {
   const profile = getProfile();
+  const [firstName, ...rest] = profile.name.split(" ");
+  // The image comes from app/opengraph-image.tsx; Next adds og:image itself.
   return {
     metadataBase: new URL(siteConfig.url),
     title: profile.name,
     description: profile.oneLiner,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "profile",
+      url: "/",
+      siteName: profile.name,
+      title: profile.name,
+      description: profile.oneLiner,
+      firstName,
+      lastName: rest.join(" "),
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: profile.name,
+      description: profile.oneLiner,
+    },
   };
 }
 

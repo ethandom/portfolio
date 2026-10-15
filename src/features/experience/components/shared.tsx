@@ -129,11 +129,20 @@ export function Tools({
 }) {
   if (entry.stack.length === 0) return null;
   return (
-    <ul aria-label="Tools" className={cn("flex flex-wrap gap-x-6 gap-y-3", className)}>
+    // A grid, not flex-wrap, so the keycaps line up in columns at every width.
+    <ul
+      aria-label="Tools"
+      className={cn(
+        "grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4",
+        className,
+      )}
+    >
       {entry.stack.map((name) => (
-        <li key={name} className="flex items-center gap-2">
+        <li key={name} className="flex min-w-0 items-center gap-2">
           <StackMark name={name} className="size-9 [&_svg]:size-5" />
-          <span className="font-mono text-label text-ink uppercase">{name}</span>
+          <span className="min-w-0 font-mono text-label break-words text-ink uppercase">
+            {name}
+          </span>
         </li>
       ))}
     </ul>

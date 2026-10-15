@@ -123,7 +123,8 @@ export function Spread({
           {project.stack.map((name) => (
             <li key={name} className="flex min-w-0 items-center gap-2.5">
               <StackMark name={name} className="size-7 [&_svg]:size-4" />
-              <span className="truncate text-sm">{name}</span>
+              {/* Wraps rather than truncates: "Linux Kernel" lost its end at 320px. */}
+              <span className="min-w-0 text-sm leading-snug break-words">{name}</span>
             </li>
           ))}
         </ul>

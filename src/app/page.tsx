@@ -1,3 +1,4 @@
+import { AwayFromKeyboard } from "@/features/about";
 import { WorkHistory } from "@/features/experience";
 import { Hero } from "@/features/hero";
 import { Projects } from "@/features/projects";
@@ -11,6 +12,7 @@ export default function ManualPage() {
         <Specifications chapter={1} />
         <WorkHistory chapter={2} />
         <Projects chapter={3} />
+        <AwayFromKeyboard chapter={4} />
       </div>
     </main>
   );

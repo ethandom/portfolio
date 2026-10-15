@@ -22,6 +22,14 @@ describe("content", () => {
     expect(fs.existsSync(path.join(process.cwd(), "public", resume))).toBe(true);
   });
 
+  it("links photos that exist in /public", () => {
+    const missing = profile.away
+      .flatMap((r) => r.photos)
+      .filter((p) => !fs.existsSync(path.join(process.cwd(), "public", p.src)))
+      .map((p) => p.src);
+    expect(missing).toEqual([]);
+  });
+
   it("loads every file", () => {
     expect(profile.name).toBeTruthy();
     expect(projects.length).toBeGreaterThan(0);

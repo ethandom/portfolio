@@ -55,6 +55,33 @@ recognition:
   - title: Eagle Scout
     org: Scouting America
     date: 2025-08
+away:
+  - title: Gold Medal, U-20 WFDF World Ultimate Championships
+    org: USA Ultimate National Team
+    period:
+      start: 2026-06
+      end: 2026-06
+    note: Defensive specialist, Logroño, Spain
+    photos:
+      - src: /photos/worlds-layout.webp
+        alt: Ethan, in a white USA jersey number 90, fully extended in the air to catch a disc over a defender.
+        width: 540
+        height: 360
+      - src: /photos/worlds-team.webp
+        alt: The U.S. U-20 team with their gold medals in front of the stands, behind a World Junior Ultimate Champions 2026 banner.
+        width: 540
+        height: 359
+  - title: Eagle Scout
+    org: Scouting America
+    period:
+      start: 2025-08
+      end: 2025-08
+    detail: Led 8 youth volunteers through 75 hours of work building mushroom inoculation tables to increase local produce yield.
+    photos:
+      - src: /photos/eagle-project.webp
+        alt: Ethan, holding a laptop, walks a younger scout through a cut at the sawhorses during his Eagle project.
+        width: 768
+        height: 1024
 activity:
   github: ethandom
   defaultSource: both

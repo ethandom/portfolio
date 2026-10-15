@@ -19,6 +19,21 @@ export const metric = z.object({
 
 const httpsUrl = z.url({ protocol: /^https$/ });
 
+/** A photo served from /public/photos; size is the file's own, in px. */
+export const photo = z.object({
+  src: z
+    .string()
+    .regex(
+      /^\/photos\/[\w-]+\.(webp|jpg|png)$/,
+      "expected /photos/<name>.webp|jpg|png",
+    ),
+  alt: z.string().min(1),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  /** Photographer or source, when the photo isn't Ethan's own. */
+  credit: z.string().optional(),
+});
+
 export const activitySource = z.enum(["both", "github", "leetcode"]);
 
 export const profileSchema = z.object({
@@ -41,7 +56,10 @@ export const profileSchema = z.object({
     github: httpsUrl,
     linkedin: httpsUrl,
     /** Site-relative path to a PDF in /public. */
-    resume: z.string().regex(/^\/[\w./-]+\.pdf$/).optional(),
+    resume: z
+      .string()
+      .regex(/^\/[\w./-]+\.pdf$/)
+      .optional(),
   }),
   metrics: z.array(metric).default([]),
   skills: z.object({
@@ -57,6 +75,22 @@ export const profileSchema = z.object({
         org: z.string().min(1),
         date: yearMonth,
         note: z.string().optional(),
+      }),
+    )
+    .default([]),
+  /** Life outside CS, newest first: the "Away From the Keyboard" chapter. */
+  away: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        org: z.string().optional(),
+        /** No `end` means it's still going ("Present"). */
+        period,
+        note: z.string().optional(),
+        /** One sentence on what it took; printed beside the title. */
+        detail: z.string().optional(),
+        /** Photos in /public/photos. */
+        photos: z.array(photo).default([]),
       }),
     )
     .default([]),

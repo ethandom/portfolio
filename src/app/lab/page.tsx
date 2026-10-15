@@ -109,6 +109,12 @@ export default function LabPage() {
           <div className="flex flex-wrap items-center gap-4">
             <ThemeSwitch />
             <Button variant="link" asChild>
+              <Link href="/lab/hero">
+                Hero lab
+                <ArrowUpRightIcon weight="light" />
+              </Link>
+            </Button>
+            <Button variant="link" asChild>
               <Link href="/lab/motion">
                 Motion lab
                 <ArrowUpRightIcon weight="light" />

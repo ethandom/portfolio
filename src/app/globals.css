@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 /* Palette, Tailwind color bridge, type scale, fonts, motion, base styles */
 @import "../styles/tokens.css";
+/* Keyframes and the states src/components/motion toggles */
+@import "../styles/motion.css";
 
 /* `dark:` follows tokens.css: system preference unless <html data-theme> overrides */
 @custom-variant dark {

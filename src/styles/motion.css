@@ -1,0 +1,153 @@
+/* ==========================================================================
+   motion.css — how the Shop Manual moves
+   The site is an instrument being switched on: ink rules draw like a plotter
+   pen, blocks print top to bottom, lamps warm up, readouts settle, and a
+   dialog is a sheet fed out of a slot. Nothing floats, bounces or glows.
+
+   Every duration is a token, and every delay is multiplied by
+   --motion-scale, so reduced motion (both = 0) lands on the final state
+   instantly. Content is visible in the server HTML; only JS (src/components/
+   motion) puts below-the-fold blocks into their start state.
+   ========================================================================== */
+
+@keyframes rule-draw {
+  from { transform: scaleX(0); }
+}
+
+@keyframes print-in {
+  0%   { clip-path: inset(0 0 100% 0); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+/* A terminal's block cursor: on, off, on. Applied only with motion allowed. */
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+
+/* An indicator lamp coming up: a filament catching, dipping, then holding. */
+@keyframes led-warm {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.9; }
+  45%  { opacity: 0.3; }
+  70%  { opacity: 1; }
+  82%  { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+
+/* A sheet fed out of a slot: printed edge first, travelling down a few px. */
+@keyframes sheet-in {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(-8px); }
+  to   { clip-path: inset(0 0 0 0); transform: none; }
+}
+
+@keyframes sheet-out {
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+/* A tag torn off toward the thing it labels. --tag-from is set per side. */
+@keyframes tag-in {
+  from { clip-path: var(--tag-from); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@layer components {
+  /* Rules are drawn from their left edge. */
+  [data-rule] {
+    transform-origin: left center;
+  }
+
+  /* ---- Reveal (src/components/motion/reveal.tsx) ---------------------- */
+  [data-reveal="pending"][data-variant="print"] {
+    clip-path: inset(0 0 100% 0);
+  }
+  [data-reveal="pending"][data-variant="rules"] {
+    opacity: 0;
+  }
+  [data-reveal="pending"] [data-rule] {
+    transform: scaleX(0);
+  }
+
+  [data-reveal="play"][data-variant="print"] {
+    animation: print-in var(--dur-slow) var(--ease-out) backwards;
+    animation-delay: calc(var(--reveal-delay, 0ms) * var(--motion-scale));
+  }
+  [data-reveal="play"][data-variant="rules"] {
+    animation: fade-in var(--dur-base) var(--ease-out) backwards;
+    animation-delay: calc((var(--reveal-delay, 0ms) + 120ms) * var(--motion-scale));
+  }
+
+  /* ---- Power-on: the one authored load sequence ----------------------
+     Pure CSS so it runs on first paint, before hydration. Only ornaments
+     move (rules, lamps); the name and one-liner never wait. */
+  :is([data-reveal="play"], [data-power-on]) [data-rule] {
+    animation: rule-draw var(--dur-slow) var(--ease-in-out) backwards;
+    animation-delay: calc(var(--reveal-delay, 0ms) * var(--motion-scale));
+  }
+  [data-power-on] [data-led]:not([data-led="off"]) {
+    animation: led-warm var(--dur-slow) linear backwards;
+    animation-delay: calc(var(--reveal-delay, 0ms) * var(--motion-scale));
+  }
+
+  /* ---- Panel switches: the LED of a latched toggle warms up ---------- */
+  [data-state="on"] > [data-slot="toggle-indicator"] {
+    animation: led-warm var(--dur-base) linear;
+  }
+
+  /* ---- Tooltip: a tag torn toward its trigger ------------------------ */
+  [data-slot="tooltip-content"] {
+    --tag-from: inset(100% 0 0 0);
+  }
+  [data-slot="tooltip-content"][data-side="bottom"] { --tag-from: inset(0 0 100% 0); }
+  [data-slot="tooltip-content"][data-side="left"]   { --tag-from: inset(0 0 0 100%); }
+  [data-slot="tooltip-content"][data-side="right"]  { --tag-from: inset(0 100% 0 0); }
+
+  /* "instant-open" (skimming across cells) stays instant on purpose. */
+  [data-slot="tooltip-content"][data-state="delayed-open"] {
+    animation: tag-in var(--dur-fast) var(--ease-out);
+  }
+  [data-slot="tooltip-content"][data-state="closed"] {
+    animation: fade-out var(--dur-instant) linear forwards;
+  }
+
+  /* ---- Dialog: an inserted sheet -------------------------------------- */
+  [data-slot="dialog-overlay"][data-state="open"] {
+    animation: fade-in var(--dur-base) var(--ease-out);
+  }
+  [data-slot="dialog-overlay"][data-state="closed"] {
+    animation: fade-out var(--dur-fast) linear forwards;
+  }
+  [data-slot="dialog-content"][data-state="open"] {
+    animation: sheet-in var(--dur-base) var(--ease-out) backwards;
+  }
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation: sheet-out var(--dur-fast) var(--ease-in-out) forwards;
+  }
+}
+
+/* Reduced motion keeps the meaning, drops the movement: overlays still
+   cross-fade briefly (--dur-instant survives) so opening reads as an event. */
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion="full"]) [data-slot="dialog-content"][data-state="open"] {
+      animation: fade-in var(--dur-instant) linear;
+    }
+    :root:not([data-motion="full"]) [data-slot="dialog-content"][data-state="closed"] {
+      animation: fade-out var(--dur-instant) linear forwards;
+    }
+  }
+  :root[data-motion="reduced"] [data-slot="dialog-content"][data-state="open"] {
+    animation: fade-in var(--dur-instant) linear;
+  }
+  :root[data-motion="reduced"] [data-slot="dialog-content"][data-state="closed"] {
+    animation: fade-out var(--dur-instant) linear forwards;
+  }
+}

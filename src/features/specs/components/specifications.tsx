@@ -55,59 +55,59 @@ export function Specifications({ chapter }: { chapter: number }) {
         />
       </Reveal>
 
-      <Reveal>
-        <section aria-labelledby="education-h">
-          <Caption id="education-h">Education</Caption>
-          <div className="grid grid-cols-1 gap-x-16 gap-y-6 border-b border-strong py-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="grid content-start gap-1">
-              <p className="text-xl font-light">{education.school}</p>
-              <p className="text-base text-ink">
-                {education.degree}
-                {education.minor && `, minor in ${education.minor}`}
-              </p>
-              <p className="mt-3 flex items-baseline gap-3">
-                <span className="font-mono text-label text-ink-muted uppercase">Graduates</span>
-                <span className="font-mono text-base tabular-nums">
-                  {formatYearMonth(education.graduation)}
-                </span>
-              </p>
-            </div>
-            {education.coursework.length > 0 && (
-              <div className="grid content-start gap-3">
-                <h4 className="font-mono text-label text-ink-muted uppercase">Coursework</h4>
-                <ul className="grid gap-x-6 gap-y-1.5 text-sm text-ink sm:grid-cols-2">
-                  {education.coursework.map((course) => (
-                    <li key={course}>{course}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+      <section aria-labelledby="education-h">
+        <Caption id="education-h">Education</Caption>
+        <div className="grid grid-cols-1 gap-x-16 gap-y-6 border-b border-strong py-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="grid content-start gap-1">
+            <p className="text-xl font-light">{education.school}</p>
+            <p className="text-base text-ink">
+              {education.degree}
+              {education.minor && `, minor in ${education.minor}`}
+            </p>
+            <p className="mt-3 flex items-baseline gap-3">
+              <span className="font-mono text-label text-ink-muted uppercase">
+                Graduates
+              </span>
+              <span className="font-mono text-base tabular-nums">
+                {formatYearMonth(education.graduation)}
+              </span>
+            </p>
           </div>
-        </section>
-      </Reveal>
+          {education.coursework.length > 0 && (
+            <div className="grid content-start gap-3">
+              <h4 className="font-mono text-label text-ink-muted uppercase">
+                Coursework
+              </h4>
+              <ul className="grid gap-x-6 gap-y-1.5 text-sm text-ink sm:grid-cols-2">
+                {education.coursework.map((course) => (
+                  <li key={course}>{course}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
 
-      <Reveal>
-        <section aria-labelledby="skills-h">
-          <Caption id="skills-h">Skills</Caption>
-          <dl>
-            {SKILL_GROUPS.map(([key, label]) => (
-              <Row key={key} label={label}>
-                <ul
-                  aria-label={label}
-                  className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5"
-                >
-                  {skills[key].map((skill) => (
-                    <li key={skill} className="flex min-w-0 items-center gap-2.5">
-                      <StackMark name={skill} className="size-7 [&_svg]:size-4" />
-                      <span className="truncate text-sm text-ink">{skill}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Row>
-            ))}
-          </dl>
-        </section>
-      </Reveal>
+      <section aria-labelledby="skills-h">
+        <Caption id="skills-h">Skills</Caption>
+        <dl>
+          {SKILL_GROUPS.map(([key, label]) => (
+            <Row key={key} label={label}>
+              <ul
+                aria-label={label}
+                className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5"
+              >
+                {skills[key].map((skill) => (
+                  <li key={skill} className="flex min-w-0 items-center gap-2.5">
+                    <StackMark name={skill} className="size-7 [&_svg]:size-4" />
+                    <span className="truncate text-sm text-ink">{skill}</span>
+                  </li>
+                ))}
+              </ul>
+            </Row>
+          ))}
+        </dl>
+      </section>
     </section>
   );
 }

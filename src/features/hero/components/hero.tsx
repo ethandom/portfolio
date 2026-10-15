@@ -4,7 +4,7 @@ import {
   GithubLogoIcon,
   LinkedinLogoIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { DocLine, DocLineItem, Led } from "@/components/manual";
+import { Led } from "@/components/manual";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -92,7 +92,7 @@ function Actions({ name, links }: { name: string; links: Profile["links"] }) {
 }
 
 /**
- * The running head and the introduction: one sentence that says the name
+ * The introduction: one sentence that says the name
  * out loud, then availability and the actions. Everything else is below.
  */
 export function Hero() {
@@ -100,12 +100,6 @@ export function Hero() {
 
   return (
     <header>
-      <DocLine data-power-on>
-        <DocLineItem emphasis>{profile.name}</DocLineItem>
-        <DocLineItem>Operator&apos;s manual</DocLineItem>
-        <DocLineItem>p. 01</DocLineItem>
-      </DocLine>
-
       <div className="grid max-w-4xl gap-8 pt-16 pb-4 sm:pt-28 sm:pb-8">
         <div className="grid gap-2 text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] leading-[1.15] font-light tracking-[-0.02em]">
           <h1 className="text-ink-muted">

@@ -102,6 +102,13 @@ export const experienceSchema = z.object({
   stack: z.array(z.string()).default([]),
   /** Slug of a project with the long-form case study. */
   project: z.string().optional(),
+  /**
+   * Apprenticeships, where Ethan wasn't on the org's payroll. Printed as one
+   * heading line, "Apprentice to Google VP": `relation` then `mentor`. The
+   * mentor is a role that starts with the company name, never a person's name.
+   */
+  relation: z.string().optional(),
+  mentor: z.string().optional(),
 });
 
 /** Normalized contribution day, shared by GitHub and LeetCode sources. */

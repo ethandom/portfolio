@@ -4,7 +4,7 @@ role: Founder
 period:
   start: 2026-02
 order: 1
-stack: [TypeScript, Hono, PostgreSQL, Deno, MCP]
+stack: [TypeScript, Python, Hono, PostgreSQL, Deno, MCP, Claude Code, Codex]
 project: conturo
 highlights:
   - Shipped a REST API that lets nonprofits move 100k+ contacts between conturo.io and their CRM, email and analytics tools.

@@ -1,6 +1,6 @@
 ---
 title: Conturo
-summary: Contact sync for nonprofits, moving 100k+ records between their CRM, email and analytics tools.
+summary: Contact sync for nonprofits across their CRM, email and analytics tools.
 kind: [web, ai, data]
 period:
   start: 2026-02

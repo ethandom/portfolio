@@ -1,8 +1,8 @@
 ---
 name: Ethan Austin-Cruse
-oneLiner: I build software from the kernel to the interface, and ship it to real users.
+oneLiner: I ship software from kernel to interface.
 status:
-  label: Seeking Summer 2027 internships — SWE, systems/infra, data/AI
+  label: Seeking Summer 2027 internships
   available: true
 location: Atlanta, GA
 education:
@@ -20,7 +20,8 @@ education:
 links:
   email: contact@ethanaustincruse.com
   github: https://github.com/ethandom
-  linkedin: https://www.linkedin.com/in/ethan-austin-cruse
+  linkedin: https://www.linkedin.com/in/ethan-austin-cruse-68221a2a9
+  resume: /resume.pdf
 metrics:
   - label: Contacts synced
     value: 100k+

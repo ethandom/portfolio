@@ -1,18 +1,29 @@
 import {
   siC,
   siDeno,
+  siDocker,
+  siGit,
   siGooglegemini,
   siHono,
   siHtml5,
+  siJavascript,
   siLinux,
   siMake,
   siModelcontextprotocol,
+  siNodedotjs,
+  siPandas,
   siPostgresql,
   siPython,
+  siRadixui,
   siReact,
+  siScikitlearn,
   siSpotify,
+  siSpringboot,
   siSupabase,
+  siTailwindcss,
+  siTensorflow,
   siTypescript,
+  siVercel,
   siZod,
   type SimpleIcon,
 } from "simple-icons";
@@ -89,6 +100,32 @@ const MATRIX: Glyph = {
   ),
 };
 
+/* A database cylinder, for query languages with no single brand. */
+const DATABASE: Glyph = {
+  viewBox: "0 0 24 24",
+  draw: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.5">
+      <ellipse cx="12" cy="5.5" rx="7" ry="2.5" />
+      <path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13" />
+      <path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5" />
+    </g>
+  ),
+};
+
+/* Build → test → deploy: three stations on a line, for CI/CD. */
+const PIPELINE: Glyph = {
+  viewBox: "0 0 24 24",
+  draw: (
+    <>
+      <path d="M6.5 12h3.5M14 12h3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8.5 9.75 10.75 12 8.5 14.25M16 9.75 18.25 12 16 14.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      {[4, 12, 20].map((x) => (
+        <circle key={x} cx={x} cy="12" r="2.25" fill="currentColor" />
+      ))}
+    </>
+  ),
+};
+
 const NET_LAYERS = [
   [8, 16],
   [5.5, 12, 18.5],
@@ -159,6 +196,24 @@ const PARTS: Record<
   "Spotify API": { role: "Music data", icon: siSpotify },
   "Claude Code": { role: "Coding agent", glyph: CLAUDE, hex: "D97757" },
   Codex: { role: "Coding agent", glyph: OPENAI, hex: "000000" },
+  // Skills in profile.md
+  JavaScript: { role: "Language", icon: siJavascript },
+  SQL: { role: "Query language", glyph: DATABASE },
+  "HTML/CSS": { role: "Markup, styles", icon: siHtml5 },
+  React: { role: "UI library", icon: siReact },
+  "Node.js": { role: "Runtime", icon: siNodedotjs },
+  "Spring Boot": { role: "Java framework", icon: siSpringboot },
+  Tailwind: { role: "CSS framework", icon: siTailwindcss },
+  Git: { role: "Version control", icon: siGit },
+  Linux: { role: "OS", icon: siLinux },
+  Docker: { role: "Containers", icon: siDocker },
+  Vercel: { role: "Hosting", icon: siVercel },
+  "CI/CD": { role: "Pipelines", glyph: PIPELINE },
+  "AI SDK": { role: "LLM toolkit", icon: siVercel },
+  Pandas: { role: "Dataframes", icon: siPandas },
+  TensorFlow: { role: "Machine learning", icon: siTensorflow },
+  "scikit-learn": { role: "Machine learning", icon: siScikitlearn },
+  Radix: { role: "UI primitives", icon: siRadixui },
 };
 
 export function partRole(name: string) {

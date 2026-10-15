@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   formatPeriod,
@@ -13,6 +15,12 @@ describe("content", () => {
   const profile = getProfile();
   const projects = getProjects();
   const experience = getExperience();
+
+  it("links a resume that exists in /public", () => {
+    const { resume } = profile.links;
+    if (!resume) return;
+    expect(fs.existsSync(path.join(process.cwd(), "public", resume))).toBe(true);
+  });
 
   it("loads every file", () => {
     expect(profile.name).toBeTruthy();

@@ -13,7 +13,8 @@ const inter = Inter({
 
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  // 600 is only for the hero's resume keys (Ethan, 2026-10-15).
+  weight: ["400", "500", "600"],
   variable: "--font-mono-loaded",
 });
 

@@ -74,6 +74,13 @@
   to   { clip-path: inset(0 0 0 0); }
 }
 
+/* A terminal filling a screen: lines print top to bottom down to the fold,
+   then the clip drops (everything below the fold is already there). */
+@keyframes readout {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 calc(100% - 100vh) 0); }
+}
+
 @layer components {
   /* Rules are drawn from their left edge. */
   [data-rule] {
@@ -110,6 +117,11 @@
   [data-power-on] [data-led]:not([data-led="off"]) {
     animation: led-warm var(--dur-slow) linear backwards;
     animation-delay: calc(var(--reveal-delay, 0ms) * var(--motion-scale));
+  }
+
+  /* ---- Readout: the /ai machine view prints itself on load ---------- */
+  [data-readout] {
+    animation: readout calc(1100ms * var(--motion-scale)) steps(40) backwards;
   }
 
   /* ---- Panel switches: the LED of a latched toggle warms up ---------- */

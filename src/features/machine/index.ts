@@ -24,4 +24,5 @@ export function getLlmsTxt(): string {
   return llmsTxt(content(), siteConfig.url);
 }
 
+export { MachinePage } from "./components/machine-page";
 export type { MachineDoc } from "./lib/render";

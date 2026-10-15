@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Led, SectionHeader, TapeStripe } from "@/components/manual";
 import { Reveal, ScrambleText } from "@/components/motion";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,15 @@ export function Contact({ chapter }: { chapter: number }) {
           </div>
 
           <p className="flex flex-wrap justify-between gap-x-6 gap-y-1 border-t border-hairline pt-4 font-mono text-label text-ink-muted uppercase">
+            <Link
+              href="/ai"
+              className="transition-colors duration-(--dur-fast) hover:text-ink"
+            >
+              Are you a robot?{" "}
+              <span className="text-accent-text underline decoration-1 underline-offset-4">
+                Machine view →
+              </span>
+            </Link>
           </p>
         </div>
       </footer>

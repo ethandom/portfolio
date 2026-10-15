@@ -84,6 +84,7 @@ away:
         height: 1024
 activity:
   github: ethandom
+  leetcode: ethandom
   defaultSource: both
 ---
 

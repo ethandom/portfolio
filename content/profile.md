@@ -2,7 +2,7 @@
 name: Ethan Austin-Cruse
 oneLiner: I ship software from kernel to interface.
 status:
-  label: Seeking Summer 2027 internships
+  label: Seeking Summer 2027 opportunities
   available: true
 location: Atlanta, GA
 education:
@@ -22,6 +22,9 @@ links:
   github: https://github.com/ethandom
   linkedin: https://www.linkedin.com/in/ethan-austin-cruse-68221a2a9
   resume: /resume.pdf
+contact:
+  heading: Let's build something.
+  note: Hiring for Summer 2027, or building something early-stage? Email is the fastest way to reach me.
 metrics:
   - label: Contacts synced
     value: 100k+
@@ -56,7 +59,7 @@ recognition:
     org: Scouting America
     date: 2025-08
 away:
-  - title: Gold Medal, U-20 WFDF World Ultimate Championships
+  - title: Gold Medal, WFDF World Ultimate Championships
     org: USA Ultimate National Team
     period:
       start: 2026-06
@@ -82,6 +85,10 @@ away:
         alt: Ethan, holding a laptop, walks a younger scout through a cut at the sawhorses during his Eagle project.
         width: 768
         height: 1024
+      - src: /photos/scout-trail.webp
+        alt: A line of scouts with full backpacks and trekking poles hiking past a High Sierra Camp trail sign in Yosemite.
+        width: 920
+        height: 514
 activity:
   github: ethandom
   leetcode: ethandom

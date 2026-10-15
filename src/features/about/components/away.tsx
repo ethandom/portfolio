@@ -12,22 +12,39 @@ type Photo = Entry["photos"][number];
 function Print({
   photo,
   sizes,
+  fillRow = false,
   className,
 }: {
   photo: Photo;
   sizes: string;
+  /**
+   * From md up, fill the grid row instead of setting its height: the photo
+   * crops to the row so its edges line up with the column beside it.
+   */
+  fillRow?: boolean;
   className?: string;
 }) {
   return (
-    <figure className={cn("min-w-0", className)}>
-      <div className="border border-strong bg-sunken">
+    <figure
+      className={cn("min-w-0", fillRow && "md:flex md:flex-col", className)}
+    >
+      <div
+        className={cn(
+          "border border-strong bg-sunken",
+          fillRow && "md:relative md:flex-1",
+        )}
+      >
         <Image
           src={photo.src}
           alt={photo.alt}
           width={photo.width}
           height={photo.height}
           sizes={sizes}
-          className="block h-auto w-full"
+          className={cn(
+            "block h-auto w-full",
+            fillRow &&
+              "md:absolute md:inset-0 md:h-full md:object-cover md:object-[50%_35%]",
+          )}
         />
       </div>
       {photo.credit && (
@@ -54,11 +71,16 @@ function Unbroken({ text }: { text: string }) {
 }
 
 function Row({ entry }: { entry: Entry }) {
-  const [first] = entry.photos;
-  // One upright photo sits beside the text; landscape sets run under it.
-  const portrait = entry.photos.length === 1 && first.height > first.width;
-  const photos = entry.photos.length > 0;
+  // An upright photo stands beside the text; landscape photos run under it.
+  const portrait = entry.photos.find((p) => p.height > p.width);
+  const wide = entry.photos.filter((p) => p !== portrait);
   const slug = entry.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  const detail = entry.detail && (
+    <p className="max-w-(--measure) text-lg text-ink">
+      <Unbroken text={entry.detail} />
+    </p>
+  );
 
   return (
     <article
@@ -78,27 +100,31 @@ function Row({ entry }: { entry: Entry }) {
         {entry.note && <p className="text-sm text-ink-muted">{entry.note}</p>}
       </header>
 
-      <div
-        className={cn(
-          "grid grid-cols-1 content-start gap-6",
-          portrait && "md:grid-cols-[minmax(0,1fr)_16rem] md:gap-x-10",
-        )}
-      >
-        {entry.detail && (
-          <p className="max-w-(--measure) text-lg text-ink">
-            <Unbroken text={entry.detail} />
-          </p>
-        )}
-        {portrait ? (
+      {portrait ? (
+        <div className="grid grid-cols-1 content-start gap-6 md:grid-cols-[minmax(0,1fr)_16rem] md:gap-x-10">
+          <div className="grid content-start gap-6">
+            {detail}
+            {wide.map((photo) => (
+              <Print
+                key={photo.src}
+                photo={photo}
+                sizes="(min-width: 1024px) 40vw, (min-width: 768px) 55vw, 100vw"
+              />
+            ))}
+          </div>
           <Print
-            photo={first}
+            photo={portrait}
             sizes="(min-width: 768px) 16rem, 100vw"
+            fillRow
             className="max-w-xs md:max-w-none"
           />
-        ) : (
-          photos && (
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 content-start gap-6">
+          {detail}
+          {wide.length > 0 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {entry.photos.map((photo) => (
+              {wide.map((photo) => (
                 <Print
                   key={photo.src}
                   photo={photo}
@@ -106,9 +132,9 @@ function Row({ entry }: { entry: Entry }) {
                 />
               ))}
             </div>
-          )
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }

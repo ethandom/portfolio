@@ -6,9 +6,11 @@ import { prefersReducedMotion } from "@/components/motion";
 import { cn } from "@/lib/cn";
 
 /**
- * A product demo that plays itself: muted and looped while on screen, paused
- * off screen. Under reduced motion it waits for a press of Play.
- * preload="none", so nothing downloads until it is close to the viewport.
+ * A product demo that plays itself: muted and looped once at least half of it
+ * is on screen, paused when it drops below half. Under reduced motion it
+ * waits for a press of Play. Nothing downloads at page load; the file starts
+ * loading as soon as the surrounding chapter (Work History) reaches the
+ * screen, so the first frame is already there by the time the video is.
  *
  * Just the footage in a 1px ink frame (bone in Night Shift). The one control
  * is the Pause key, which an autoplaying loop owes its viewer.
@@ -24,15 +26,31 @@ export function DemoVideo({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [preload, setPreload] = useState<"none" | "auto">("none");
   // Once someone presses Pause, scrolling never restarts it.
   const held = useRef(false);
+
+  // Load when the chapter comes in, not when the video itself does.
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      setPreload("auto");
+    });
+    observer.observe(video.closest("section") ?? video);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const video = ref.current;
     if (!video) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        // isIntersecting is true at any overlap; the first callback can
+        // report 10%, so check the ratio itself.
+        if (entry.intersectionRatio >= 0.5) {
           if (!held.current && !prefersReducedMotion()) {
             video.play().catch(() => {});
           }
@@ -40,7 +58,7 @@ export function DemoVideo({
           video.pause();
         }
       },
-      { threshold: 0.35 },
+      { threshold: 0.5 },
     );
     observer.observe(video);
     return () => observer.disconnect();
@@ -66,7 +84,7 @@ export function DemoVideo({
         muted
         loop
         playsInline
-        preload="none"
+        preload={preload}
         aria-label={label}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}

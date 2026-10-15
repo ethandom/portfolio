@@ -61,6 +61,11 @@ export const profileSchema = z.object({
       .regex(/^\/[\w./-]+\.pdf$/)
       .optional(),
   }),
+  /** The closing chapter: one heading and one sentence on how to reach out. */
+  contact: z.object({
+    heading: z.string().min(1),
+    note: z.string().min(1),
+  }),
   metrics: z.array(metric).default([]),
   skills: z.object({
     languages: z.array(z.string()),

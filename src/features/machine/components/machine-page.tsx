@@ -49,18 +49,22 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 type Row = { key: string; value: ReactNode };
 
-/** "name .......... value": keys padded with leaders to one column. */
+/**
+ * "name .......... value": keys padded with leaders to one column. When a
+ * long key leaves the value under ~16 characters (phones), the value drops
+ * onto its own line instead of wrapping a few letters at a time.
+ */
 function Fields({ rows }: { rows: (Row | false | "" | undefined)[] }) {
   const shown = rows.filter((row): row is Row => Boolean(row));
   const width = Math.max(...shown.map((row) => row.key.length)) + 4;
   return (
     <dl className="grid gap-1">
       {shown.map(({ key, value }) => (
-        <div key={key} className="flex">
-          <dt className="shrink-0 whitespace-pre text-ink-muted">
+        <div key={key} className="flex flex-wrap">
+          <dt className="max-w-full shrink-0 overflow-hidden whitespace-pre text-ink-muted">
             {`${key} ${".".repeat(width - key.length - 1)} `}
           </dt>
-          <dd className="min-w-0 [overflow-wrap:anywhere]">{value}</dd>
+          <dd className="min-w-[16ch] flex-1 basis-0 [overflow-wrap:anywhere]">{value}</dd>
         </div>
       ))}
     </dl>
@@ -148,11 +152,11 @@ export function MachinePage() {
   const host = (url: string) => url.replace(/^https:\/\/(www\.)?/, "");
 
   const docs = [
-    ["llms.txt", "/llms.txt"],
-    ["index.md", "/index.md"],
-    ["profile.md", "/profile.md"],
-    ...experience.map((e) => [`experience/${e.slug}.md`, `/experience/${e.slug}.md`]),
-    ...projects.map((p) => [`projects/${p.slug}.md`, `/projects/${p.slug}.md`]),
+    "/llms.txt",
+    "/index.md",
+    "/profile.md",
+    ...experience.map((e) => `/experience/${e.slug}.md`),
+    ...projects.map((p) => `/projects/${p.slug}.md`),
   ];
 
   return (
@@ -303,12 +307,18 @@ export function MachinePage() {
         </Section>
 
         <Section id="agents" title="For agents">
-          <Fields
-            rows={docs.map(([name, href]) => ({
-              key: name,
-              value: <Link href={href}>{href}</Link>,
-            }))}
-          />
+          <ul className="grid gap-1">
+            {docs.map((href) => (
+              <li key={href} className="flex gap-2">
+                <span aria-hidden className="text-ink-muted">
+                  -
+                </span>
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  <Link href={href}>{href}</Link>
+                </span>
+              </li>
+            ))}
+          </ul>
           <p className="text-ink-muted">
             # Every document is plain markdown. `/` answers in markdown too,
             when asked with Accept: text/markdown.

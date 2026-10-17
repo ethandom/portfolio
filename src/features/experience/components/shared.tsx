@@ -50,13 +50,17 @@ export function Emphasis({ text }: { text: string }) {
 }
 
 /**
+ * What a figure takes. `compact`: it sits in a narrow column (the
+ * Workbench's panels), so it shrinks to fit instead of scrolling; figures
+ * that already fit ignore it.
+ */
+type FigureProps = { number: number; compact?: boolean };
+
+/**
  * The drawing behind each `figure` id in /content. Each one shows a past
  * role instead of telling it; the content names the chip that opens it.
  */
-const FIGURES: Record<
-  ExperienceFigure,
-  (props: { number: number }) => ReactNode
-> = {
+const FIGURES: Record<ExperienceFigure, (props: FigureProps) => ReactNode> = {
   "gradient-descent": DescentFigure,
   "data-pipeline": WorkflowFigure,
 };
@@ -76,11 +80,15 @@ export function figureCount(entry: Experience) {
 export function EntryFigure({
   entry,
   number,
+  compact,
 }: {
   entry: Experience;
   number: number;
+  compact?: boolean;
 }) {
-  return entryFigures(entry, number)[0]?.figure ?? null;
+  if (!entry.figure) return null;
+  const Fig = FIGURES[entry.figure.id];
+  return <Fig number={number} compact={compact} />;
 }
 
 /** Period, then how long: "Jan 2024 – Feb 2024 · 2 mos". */
@@ -94,12 +102,14 @@ export function PeriodLine({ entry }: { entry: Experience }) {
   );
 }
 
-/** The core points, numbers marked. */
+/** The core points, numbers marked. `size="sm"` sets them small, for narrow panels. */
 export function CorePoints({
   entry,
+  size = "base",
   className,
 }: {
   entry: Experience;
+  size?: "base" | "sm";
   className?: string;
 }) {
   return (
@@ -107,9 +117,16 @@ export function CorePoints({
       {entry.highlights.map((line) => (
         <li
           key={line}
-          className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-2 text-base"
+          className={cn(
+            "grid grid-cols-[0.75rem_minmax(0,1fr)] gap-2",
+            size === "sm" ? "text-sm/normal" : "text-base",
+          )}
         >
-          <span aria-hidden className="mt-2.5 size-1.5 bg-accent" />
+          <span
+            aria-hidden
+            // The square sits on the first line's center.
+            className={cn("size-1.5 bg-accent", size === "sm" ? "mt-2" : "mt-2.5")}
+          />
           <span className="max-w-(--measure)">
             <Emphasis text={line} />
           </span>

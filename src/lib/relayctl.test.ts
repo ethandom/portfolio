@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { complete, run } from "./relayctl";
+import { complete, completions, run } from "./relayctl";
 
 const say = (input: string, mask = 0) =>
   run(input, mask).lines.map((l) => l.text);
@@ -56,5 +56,16 @@ describe("relayctl port", () => {
     expect(complete("tog")).toBe("toggle ");
     expect(complete("relayctl wri")).toBe("relayctl write-mask ");
     expect(complete("re")).toBe("re");
+    expect(complete("cl")).toBe("clear ");
+    expect(complete("rel")).toBe("relayctl ");
+    expect(complete("set ")).toBe("set ");
+  });
+
+  it("lists the names a word could finish as", () => {
+    expect(completions("re")).toEqual(["relayctl", "read-mask", "reset"]);
+    expect(completions("relayctl re")).toEqual(["read-mask", "reset"]);
+    expect(completions("relayctl cl")).toEqual([]);
+    expect(completions("")).toEqual([]);
+    expect(completions("set 1")).toEqual([]);
   });
 });

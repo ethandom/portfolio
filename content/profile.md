@@ -89,6 +89,9 @@ away:
         alt: A line of scouts with full backpacks and trekking poles hiking past a High Sierra Camp trail sign in Yosemite.
         width: 920
         height: 514
+reading:
+  title: A Philosophy of Software Design
+  author: John Ousterhout
 activity:
   github: ethandom
   leetcode: ethandom

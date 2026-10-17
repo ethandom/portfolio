@@ -19,7 +19,7 @@ import {
   hex,
   run,
   type Line,
-} from "./relayctl";
+} from "@/lib/relayctl";
 
 /* ---------------------------------------------------------------- board -- */
 

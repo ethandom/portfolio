@@ -55,6 +55,12 @@ describe("content", () => {
     }
   });
 
+  it("names the book being read, if any, with its author", () => {
+    if (!profile.reading) return;
+    expect(profile.reading.title.trim()).toBe(profile.reading.title);
+    expect(profile.reading.author.trim()).toBe(profile.reading.author);
+  });
+
   it("features at least one project", () => {
     expect(projects.some((p) => p.featured)).toBe(true);
   });
@@ -109,6 +115,18 @@ describe("schemas", () => {
       experienceSchema.shape.figure.safeParse({ id: "data-pipeline", title: "" })
         .success,
     ).toBe(false);
+  });
+
+  it("needs a title and an author for the book being read", () => {
+    const { reading } = profileSchema.shape;
+    expect(reading.safeParse(undefined).success).toBe(true);
+    expect(
+      reading.safeParse({ title: "A Book", author: "An Author" }).success,
+    ).toBe(true);
+    expect(reading.safeParse({ title: "A Book" }).success).toBe(false);
+    expect(reading.safeParse({ title: "", author: "An Author" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects a non-https demo", () => {

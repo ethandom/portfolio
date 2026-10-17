@@ -188,10 +188,27 @@ export function run(input: string, mask: number): Result {
   }
 }
 
-/** Tab completion: the one command name that starts with what's typed. */
+/** The command word being typed: everything before it, and the word. */
+const WORD = /^(\s*(?:relayctl\s+)?)(\S*)$/;
+
+/**
+ * The names that could finish the command word being typed. On its own the
+ * word can also be `relayctl` or the shell's `clear`; after `relayctl` only
+ * its commands.
+ */
+export function completions(input: string): string[] {
+  const m = WORD.exec(input);
+  if (!m || !m[2]) return [];
+  const word = m[2].toLowerCase();
+  const names: readonly string[] = m[1].trim()
+    ? COMMANDS
+    : ["relayctl", ...COMMANDS, "clear"];
+  return names.filter((c) => c.startsWith(word));
+}
+
+/** Tab completion: the one name that starts with what's typed. */
 export function complete(input: string): string {
-  const m = /^(\s*(?:relayctl\s+)?)(\S*)$/.exec(input);
-  if (!m || !m[2]) return input;
-  const hits = COMMANDS.filter((c) => c.startsWith(m[2].toLowerCase()));
-  return hits.length === 1 ? `${m[1]}${hits[0]} ` : input;
+  const m = WORD.exec(input);
+  const hits = completions(input);
+  return m && hits.length === 1 ? `${m[1]}${hits[0]} ` : input;
 }

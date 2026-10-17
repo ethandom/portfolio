@@ -6,6 +6,7 @@ import { Figure } from "@/components/manual";
 import { prefersReducedMotion, timeScale } from "@/components/motion/preference";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/cn";
 import { useFirstView } from "./use-first-view";
 
 /*
@@ -177,8 +178,17 @@ const MS_PER_STEP = 150;
 /**
  * Fig. for the Google apprenticeship: how a model learns, as a ball rolling
  * down a loss surface. Pick a step size and it rolls again.
+ *
+ * `compact`: in a narrow panel the surface shrinks to the column instead of
+ * holding its 26rem and scrolling, and the frame's margins tighten.
  */
-export function DescentFigure({ number }: { number: number }) {
+export function DescentFigure({
+  number,
+  compact = false,
+}: {
+  number: number;
+  compact?: boolean;
+}) {
   const [rate, setRate] = useState<Rate>("tuned");
   const [t, setT] = useState(STEPS);
   const ref = useRef<HTMLDivElement>(null);
@@ -233,10 +243,17 @@ export function DescentFigure({ number }: { number: number }) {
           {ball.z.toFixed(2)}
         </>
       }
-      scroll
+      scroll={!compact}
+      bodyClassName={compact ? "px-4 py-5 sm:px-4" : undefined}
       note="The ball steps downhill along the slope. Too small a step crawls; too large zigzags wall to wall on the way down."
     >
-      <div ref={ref} className="mx-auto grid w-full max-w-[560px] min-w-[26rem] gap-4">
+      <div
+        ref={ref}
+        className={cn(
+          "mx-auto grid w-full max-w-[560px] gap-4",
+          !compact && "min-w-[26rem]",
+        )}
+      >
         <svg
           viewBox={VIEW}
           role="img"

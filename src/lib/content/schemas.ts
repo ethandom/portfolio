@@ -99,6 +99,13 @@ export const profileSchema = z.object({
       }),
     )
     .default([]),
+  /** The book on the desk right now: the Workbench's bookshelf panel. */
+  reading: z
+    .object({
+      title: z.string().min(1),
+      author: z.string().min(1),
+    })
+    .optional(),
   activity: z.object({
     github: z.string().min(1),
     leetcode: z.string().optional(),

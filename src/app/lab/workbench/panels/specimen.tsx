@@ -8,12 +8,14 @@ import { PANEL_IDS, type PanelId, type Panels } from "@/features/workbench";
 // Lab files reach into a feature by path: the panel shell isn't public API.
 import { StationPanel } from "@/features/workbench/components/station-panel";
 import { DUSK } from "@/features/workbench/lib/palette";
+import { PANEL_SIDE } from "@/features/workbench/lib/panels";
 
 const LABELS: Record<PanelId, string> = {
   reading: "Reading",
   conturo: "Conturo",
   skills: "Skills",
   google: "Google",
+  relay: "Relay",
 };
 
 /**
@@ -75,6 +77,7 @@ export function PanelSpecimen({ panels }: { panels: Panels }) {
       <StationPanel
         content={open ? (panels[open] ?? null) : null}
         onClose={() => setOpen(null)}
+        side={(open && PANEL_SIDE[open]) ?? "right"}
       />
     </div>
   );
@@ -87,10 +90,20 @@ export function PanelSpecimen({ panels }: { panels: Panels }) {
  */
 function Backdrop() {
   const towers = [
-    [40, 520, 90], [150, 610, 70], [240, 470, 110], [380, 560, 80],
-    [470, 430, 60], [560, 590, 120], [700, 500, 90], [820, 640, 70],
-    [910, 450, 100], [1040, 560, 80], [1140, 520, 110], [1280, 600, 70],
-    [1370, 480, 90], [1490, 570, 110],
+    [40, 520, 90],
+    [150, 610, 70],
+    [240, 470, 110],
+    [380, 560, 80],
+    [470, 430, 60],
+    [560, 590, 120],
+    [700, 500, 90],
+    [820, 640, 70],
+    [910, 450, 100],
+    [1040, 560, 80],
+    [1140, 520, 110],
+    [1280, 600, 70],
+    [1370, 480, 90],
+    [1490, 570, 110],
   ];
   return (
     <svg
@@ -139,7 +152,14 @@ function Backdrop() {
       <rect x="200" y="666" width="18" height="250" fill="#0f0f12" />
       <rect x="1040" y="666" width="18" height="250" fill="#0f0f12" />
       <rect x="620" y="560" width="200" height="80" fill="#0b0c10" />
-      <rect x="630" y="568" width="180" height="62" fill="#ff6a2b" opacity="0.35" />
+      <rect
+        x="630"
+        y="568"
+        width="180"
+        height="62"
+        fill="#ff6a2b"
+        opacity="0.35"
+      />
       <circle cx="1180" cy="520" r="220" fill="url(#specimen-lamp)" />
       <circle cx="430" cy="600" r="160" fill="url(#specimen-lamp)" />
     </svg>

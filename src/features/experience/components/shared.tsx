@@ -108,7 +108,8 @@ export function CorePoints({
   size = "base",
   className,
 }: {
-  entry: Experience;
+  /** An experience entry, or anything with highlights (a project). */
+  entry: Pick<Experience, "highlights">;
   size?: "base" | "sm";
   className?: string;
 }) {
@@ -125,7 +126,10 @@ export function CorePoints({
           <span
             aria-hidden
             // The square sits on the first line's center.
-            className={cn("size-1.5 bg-accent", size === "sm" ? "mt-2" : "mt-2.5")}
+            className={cn(
+              "size-1.5 bg-accent",
+              size === "sm" ? "mt-2" : "mt-2.5",
+            )}
           />
           <span className="max-w-(--measure)">
             <Emphasis text={line} />

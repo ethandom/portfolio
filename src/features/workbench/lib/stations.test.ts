@@ -1,9 +1,19 @@
-import { Box3, Vector3 } from "three";
+import {
+  Box3,
+  Mesh,
+  PerspectiveCamera,
+  Raycaster,
+  Vector2,
+  Vector3,
+} from "three";
+import { acceleratedRaycast } from "three-mesh-bvh";
 import { describe, expect, it } from "vitest";
 import { hasSceneGlb, loadSceneGlb } from "@/testing/scene-glb";
 import { HIT_IDS, STATION_IDS } from "./hits";
 import { prepareModel } from "./model";
+import { fitVerticalFov } from "./framing";
 import { HIT_PANELS, STATION_PANELS } from "./panels";
+import { zoneAt } from "./picking";
 import { showMask } from "./relay-board";
 
 const load = async () => prepareModel(await loadSceneGlb());
@@ -77,5 +87,66 @@ describe.skipIf(!hasSceneGlb)("stations and panels in scene.glb", () => {
       ),
     );
     expect(glow.getWorldPosition(new Vector3()).y).toBeGreaterThan(top);
+  });
+
+  it("loads every node with a real transform", async () => {
+    const model = await load();
+    const bad: string[] = [];
+    model.root.traverse((o) => {
+      if (o.matrixWorld.elements.some(Number.isNaN)) bad.push(o.name);
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it("raycasts through the BVH exactly as a plain raycast would", async () => {
+    const model = await load();
+    const from = model.overview.position;
+    let checked = 0;
+    model.root.traverse((o) => {
+      if (!(o instanceof Mesh) || o.raycast !== acceleratedRaycast) return;
+      const box = new Box3().setFromObject(o);
+      if (box.isEmpty()) return;
+      const to = box.getCenter(new Vector3());
+      const ray = new Raycaster(from.clone(), to.sub(from).normalize());
+      const fast: unknown[] = [];
+      const plain: unknown[] = [];
+      o.raycast(ray, fast as never);
+      Mesh.prototype.raycast.call(o, ray, plain as never);
+      expect(fast.length, o.name).toBe(plain.length);
+      checked++;
+    });
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  // Points on the overview at 800 x 735 (the browser pane) and what they should outline.
+  it.each([
+    [450, 300, "shelf"],
+    [500, 330, "shelf"],
+    [540, 380, "shelf"],
+    [470, 400, "shelf"],
+    [560, 280, "shelf"],
+    [650, 400, "lounge"],
+    [700, 430, "lounge"],
+    [620, 450, "lounge"],
+    [690, 310, "lounge"],
+    [330, 380, "workbench"],
+    [110, 455, "rack"],
+  ])("outlines the station under (%i, %i): %s", async (x, y, expected) => {
+    const model = await load();
+    const [w, h] = [800, 735];
+    const camera = new PerspectiveCamera(
+      fitVerticalFov(model.overview.lens, w / h),
+      w / h,
+      0.05,
+      5000,
+    );
+    camera.position.copy(model.overview.position);
+    camera.lookAt(model.overview.target);
+    camera.updateMatrixWorld();
+    const ray = new Raycaster();
+    ray.setFromCamera(new Vector2((x / w) * 2 - 1, 1 - (y / h) * 2), camera);
+    expect(zoneAt(model.stations, ray.intersectObject(model.root, true))).toBe(
+      expected,
+    );
   });
 });

@@ -7,13 +7,15 @@ import {
   EntryFigure,
   PeriodLine,
 } from "@/features/experience";
-import type { Panels } from "@/features/workbench";
+import { type Panels, TryCommand } from "@/features/workbench";
 import {
+  formatPeriod,
   getExperience,
   getProfile,
   getProject,
   type Experience,
   type Profile,
+  type Project,
 } from "@/lib/content";
 import { Keycaps, Part } from "./parts";
 
@@ -27,6 +29,7 @@ export function getPanels(): Panels {
   const experience = getExperience();
   const conturo = experience.find((e) => e.slug === "conturo");
   const google = experience.find((e) => e.slug === "google");
+  const relay = getProject("usb-relay-driver");
 
   return {
     ...(profile.reading && {
@@ -48,6 +51,13 @@ export function getPanels(): Panels {
       title: "Skills",
       body: <Skills skills={profile.skills} />,
     },
+    ...(relay && {
+      relay: {
+        kicker: "Projects",
+        title: relay.title,
+        body: <Relay project={relay} />,
+      },
+    }),
     ...(google && {
       google: {
         kicker: "Work History",
@@ -102,7 +112,11 @@ function Conturo({ entry }: { entry: Experience }) {
         </Part>
       )}
       {project?.links.live && (
-        <Button variant="link" asChild className="h-auto justify-self-start px-0">
+        <Button
+          variant="link"
+          asChild
+          className="h-auto justify-self-start px-0"
+        >
           <a href={project.links.live} target="_blank" rel="noreferrer">
             {new URL(project.links.live).host}
             <ArrowUpRightIcon weight="light" />
@@ -129,6 +143,55 @@ function Skills({ skills }: { skills: Profile["skills"] }) {
             <Keycaps names={skills[key]} label={label} />
           </Part>
         ),
+      )}
+    </div>
+  );
+}
+
+/** Lines to try on the bench monitor, from the CLI's own commands. */
+const TRY = ["set 3 on", "toggle 1", "write-mask 0xA5", "reset", "help"];
+
+/**
+ * The relay driver, beside the board it drives: when, what, the top
+ * impact lines, command keys that run on the monitor, the stack, the repo.
+ */
+function Relay({ project }: { project: Project }) {
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-1.5">
+        <SpecLabel as="p">{formatPeriod(project.period)}</SpecLabel>
+        <p className="text-sm text-ink">{project.summary}</p>
+      </div>
+      <CorePoints
+        entry={{ highlights: project.highlights.slice(0, 3) }}
+        size="sm"
+        className="gap-3"
+      />
+      <Part label="Try it on the monitor">
+        <ul aria-label="relayctl commands" className="flex flex-wrap gap-2">
+          {TRY.map((command) => (
+            <li key={command}>
+              <TryCommand command={command} />
+            </li>
+          ))}
+        </ul>
+      </Part>
+      {project.stack.length > 0 && (
+        <Part label="Built with">
+          <Keycaps names={project.stack} label="Tools" />
+        </Part>
+      )}
+      {project.links.repo && (
+        <Button
+          variant="link"
+          asChild
+          className="h-auto justify-self-start px-0"
+        >
+          <a href={project.links.repo} target="_blank" rel="noreferrer">
+            {new URL(project.links.repo).pathname.slice(1)}
+            <ArrowUpRightIcon weight="light" />
+          </a>
+        </Button>
       )}
     </div>
   );

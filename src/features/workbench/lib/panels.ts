@@ -5,7 +5,13 @@ import type { HitId, StationId } from "./hits";
  * The 2D overlays: a small panel docked over the scene that carries what a
  * 3D object can't say on its own (copy, a video, a figure).
  */
-export const PANEL_IDS = ["reading", "conturo", "skills", "google"] as const;
+export const PANEL_IDS = [
+  "reading",
+  "conturo",
+  "skills",
+  "google",
+  "relay",
+] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
 
@@ -34,4 +40,17 @@ export const HIT_PANELS: Partial<Record<HitId, PanelId>> = {
   chess: "google",
   rack: "conturo",
   book: "reading",
+  relay: "relay",
+  monitor: "relay",
 };
+
+/**
+ * The edge a panel docks to: right, except the relay's, which goes left so
+ * the monitor and the board stay in view beside it.
+ */
+export const PANEL_SIDE: Partial<Record<PanelId, "left" | "right">> = {
+  relay: "left",
+};
+
+/** Panels that leave focus where it is: the relay's sits beside the terminal you're typing into. */
+export const PANEL_KEEPS_FOCUS: ReadonlySet<PanelId> = new Set(["relay"]);

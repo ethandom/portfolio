@@ -1,3 +1,4 @@
+export { TryCommand } from "./components/try-command";
 export { Workbench } from "./components/workbench";
 export {
   PANEL_IDS,

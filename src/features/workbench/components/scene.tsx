@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useGLTF } from "@react-three/drei";
 import { type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import type { Intersection, PerspectiveCamera } from "three";
+import type { PerspectiveCamera } from "three";
 import { MathUtils, Vector2, Vector3 } from "three";
 import { ACTIONS, ALL_ACTIONS, type ActionContext } from "../lib/actions";
 import {
@@ -22,14 +22,9 @@ import {
   type Rect,
   shotPath,
 } from "../lib/framing";
-import {
-  HIT_IDS,
-  type HitId,
-  hitIdOf,
-  type StationId,
-  zoneOf,
-} from "../lib/hits";
+import { HIT_IDS, type HitId, hitIdOf, type StationId } from "../lib/hits";
 import { MODEL_URL, prepareModel, setGlow } from "../lib/model";
+import { solidHit, zoneAt } from "../lib/picking";
 import { bindBoard } from "../lib/relay-board";
 import {
   LaptopScreen,
@@ -100,14 +95,6 @@ function place(el: HTMLElement | null, rect: Rect | null | undefined) {
   el.style.width = `${rect.width}px`;
   el.style.height = `${rect.height}px`;
 }
-
-/** The nearest zone box along the ray, looking past anything in front of it. */
-const zoneHit = (hits: Intersection[]) =>
-  hits.map((h) => zoneOf(h.object)).find(Boolean) ?? null;
-
-/** The nearest real surface along the ray (zone boxes are invisible). */
-const solidHit = (hits: Intersection[]) =>
-  hits.find((h) => !zoneOf(h.object))?.object ?? null;
 
 /**
  * The room. In the overview the camera rests on Camera_Main and the zones
@@ -304,21 +291,21 @@ export function Scene({
   function hover(e: ThreeEvent<PointerEvent>) {
     e.stopPropagation();
     if (!station) {
-      onHoverZone(zoneHit(e.intersections));
+      onHoverZone(zoneAt(model.stations, e.intersections));
       return;
     }
-    const id = hitIdOf(solidHit(e.intersections));
+    const id = hitIdOf(solidHit(e.intersections)?.object ?? null);
     onHoverHit(id && model.hits.get(id)?.station === station ? id : null);
   }
 
   function click(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
     if (!station) {
-      const target = zoneHit(e.intersections);
+      const target = zoneAt(model.stations, e.intersections);
       if (target) onGo(target);
       return;
     }
-    const id = hitIdOf(solidHit(e.intersections));
+    const id = hitIdOf(solidHit(e.intersections)?.object ?? null);
     if (id && model.hits.get(id)?.station === station) act(id);
     else onGo(null);
   }

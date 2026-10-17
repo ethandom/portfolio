@@ -45,6 +45,8 @@ export type Station = {
   shot: Shot;
   /** The Zone_ box's eight corners, world space, for the hover outline. */
   corners: Vector3[];
+  /** The same box as world bounds, for picking (lib/picking.ts). */
+  box: Box3;
 };
 
 export type WorkbenchModel = {
@@ -131,11 +133,21 @@ function shot(root: Object3D, camera: string, target: string): Shot {
  * raycasts are left alone.
  */
 function accelerate(root: Object3D) {
+  // Building a tree reorders its geometry's index in place, and the export's
+  // dedup makes same-topology meshes (the zone boxes, matching chess pieces)
+  // share one index: each build scrambled the trees built before it, and
+  // hovers missed. So a geometry gets its own index before its tree.
+  const indices = new Set<unknown>();
   root.traverse((o) => {
     if (!(o instanceof Mesh) || o.raycast !== Mesh.prototype.raycast) return;
-    if (!o.geometry.boundsTree) {
-      computeBoundsTree.call(o.geometry, { strategy: CENTER });
+    const geometry = o.geometry;
+    if (!geometry.boundsTree) {
+      if (geometry.index && indices.has(geometry.index)) {
+        geometry.setIndex(geometry.index.clone());
+      }
+      computeBoundsTree.call(geometry, { strategy: CENTER });
     }
+    if (geometry.index) indices.add(geometry.index);
     o.raycast = acceleratedRaycast;
   });
 }
@@ -207,6 +219,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
     stations.set(id, {
       shot: shot(root, `Camera_${id}`, `Cam_Target_${id}`),
       corners,
+      box: new Box3().setFromPoints(corners),
     });
   }
 

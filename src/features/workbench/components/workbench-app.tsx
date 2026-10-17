@@ -25,6 +25,8 @@ import {
 } from "../lib/hits";
 import {
   HIT_PANELS,
+  PANEL_KEEPS_FOCUS,
+  PANEL_SIDE,
   type PanelId,
   type Panels,
   STATION_PANELS,
@@ -34,6 +36,7 @@ import { Terminal } from "../lib/terminal";
 import { Loading } from "./loading";
 import { type Layout, Scene, type SceneApi } from "./scene";
 import { StationPanel } from "./station-panel";
+import { RUN_COMMAND } from "./try-command";
 import { TerminalInput, type TerminalInputHandle } from "./terminal-input";
 import { ZoneOutline } from "./zone-outline";
 
@@ -69,6 +72,8 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
     () => false,
   );
   const term = useRef<TerminalInputHandle>(null);
+  // A command key pressed before the board was online: run once it is.
+  const queued = useRef<string | null>(null);
   const label = useRef<HTMLDivElement>(null);
   const outline = useRef<HTMLDivElement>(null);
   const keys = useRef<HTMLUListElement>(null);
@@ -130,6 +135,33 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
     }
   }, [typing]);
 
+  /** Types a line into the terminal, runs it, and leaves the cursor there. */
+  function run(command: string) {
+    terminal.sync(command, command.length);
+    terminal.submit();
+    term.current?.focus();
+  }
+
+  // A panel's command key (TryCommand): run it, or plug the board in and
+  // run it once the terminal is up.
+  const onCommand = useEffectEvent((command: string) => {
+    if (terminal.online) return run(command);
+    queued.current = command;
+    api.current?.act("relay");
+  });
+  useEffect(() => {
+    const on = (e: Event) => onCommand((e as CustomEvent<string>).detail);
+    window.addEventListener(RUN_COMMAND, on);
+    return () => window.removeEventListener(RUN_COMMAND, on);
+  }, []);
+  const flush = useEffectEvent(() => {
+    const command = queued.current;
+    if (!command || !terminal.online) return;
+    queued.current = null;
+    run(command);
+  });
+  useEffect(() => terminal.subscribe(() => flush()), [terminal]);
+
   const onEscape = useEffectEvent(() => back(true));
   useEffect(() => {
     if (!station) return;
@@ -178,7 +210,10 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
         // Logarithmic depth: the bench is centimeters away and the skyline a
         // kilometer or more, which a plain 24-bit depth buffer can't separate
         // (the far towers z-fought).
-        gl={{ toneMapping: ACESFilmicToneMapping, logarithmicDepthBuffer: true }}
+        gl={{
+          toneMapping: ACESFilmicToneMapping,
+          logarithmicDepthBuffer: true,
+        }}
         onPointerMissed={() => station && back()}
       >
         <Suspense fallback={null}>
@@ -276,6 +311,8 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
       <StationPanel
         content={panel ? (panels[panel] ?? null) : null}
         onClose={close}
+        side={(panel && PANEL_SIDE[panel]) ?? "right"}
+        takeFocus={!panel || !PANEL_KEEPS_FOCUS.has(panel)}
       />
 
       <p aria-live="polite" className="sr-only">

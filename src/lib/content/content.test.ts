@@ -19,7 +19,9 @@ describe("content", () => {
   it("links a resume that exists in /public", () => {
     const { resume } = profile.links;
     if (!resume) return;
-    expect(fs.existsSync(path.join(process.cwd(), "public", resume))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), "public", resume))).toBe(
+      true,
+    );
   });
 
   it("links photos that exist in /public", () => {
@@ -59,6 +61,14 @@ describe("content", () => {
     if (!profile.reading) return;
     expect(profile.reading.title.trim()).toBe(profile.reading.title);
     expect(profile.reading.author.trim()).toBe(profile.reading.author);
+  });
+
+  it("links a book cover that exists in /public", () => {
+    const cover = profile.reading?.cover;
+    if (!cover) return;
+    expect(fs.existsSync(path.join(process.cwd(), "public", cover.src))).toBe(
+      true,
+    );
   });
 
   it("features at least one project", () => {
@@ -112,8 +122,10 @@ describe("schemas", () => {
         .success,
     ).toBe(false);
     expect(
-      experienceSchema.shape.figure.safeParse({ id: "data-pipeline", title: "" })
-        .success,
+      experienceSchema.shape.figure.safeParse({
+        id: "data-pipeline",
+        title: "",
+      }).success,
     ).toBe(false);
   });
 
@@ -138,7 +150,9 @@ describe("schemas", () => {
 
 describe("formatPeriod", () => {
   it("formats ranges, ongoing and single months", () => {
-    expect(formatPeriod({ start: "2025-10", end: "2025-12" })).toBe("Oct 2025 – Dec 2025");
+    expect(formatPeriod({ start: "2025-10", end: "2025-12" })).toBe(
+      "Oct 2025 – Dec 2025",
+    );
     expect(formatPeriod({ start: "2026-02" })).toBe("Feb 2026 – Present");
     expect(formatPeriod({ start: "2026-02", end: "2026-02" })).toBe("Feb 2026");
   });

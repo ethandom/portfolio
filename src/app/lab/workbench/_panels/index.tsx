@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr";
 import { Led, SpecLabel } from "@/components/manual";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
 import { type Panels, TryCommand } from "@/features/workbench";
 import {
   formatPeriod,
+  formatYearMonth,
   getExperience,
   getProfile,
   getProject,
@@ -17,6 +19,7 @@ import {
   type Profile,
   type Project,
 } from "@/lib/content";
+import { cn } from "@/lib/cn";
 import { Keycaps, Part } from "./parts";
 
 /**
@@ -48,8 +51,8 @@ export function getPanels(): Panels {
     }),
     skills: {
       kicker: "Specifications",
-      title: "Skills",
-      body: <Skills skills={profile.skills} />,
+      title: "Education & skills",
+      body: <Skills skills={profile.skills} education={profile.education} />,
     },
     ...(relay && {
       relay: {
@@ -70,12 +73,33 @@ export function getPanels(): Panels {
   };
 }
 
+/** The book: its cover, and who wrote it. */
 function Reading({ reading }: { reading: NonNullable<Profile["reading"]> }) {
+  const { cover } = reading;
   return (
-    <dl className="grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-x-4 text-sm">
-      <dt className="font-mono text-label text-ink-muted uppercase">Author</dt>
-      <dd className="text-ink">{reading.author}</dd>
-    </dl>
+    <div
+      className={cn(
+        "grid items-start gap-4",
+        cover && "grid-cols-[7.5rem_minmax(0,1fr)]",
+      )}
+    >
+      {cover && (
+        <Image
+          src={cover.src}
+          alt={cover.alt}
+          width={cover.width}
+          height={cover.height}
+          sizes="7.5rem"
+          className="h-auto w-full border border-strong"
+        />
+      )}
+      <dl className="grid content-start gap-1 text-sm">
+        <dt className="font-mono text-label text-ink-muted uppercase">
+          Author
+        </dt>
+        <dd className="text-ink">{reading.author}</dd>
+      </dl>
+    </div>
   );
 }
 
@@ -134,9 +158,45 @@ const SKILL_GROUPS = [
   ["libraries", "Libraries"],
 ] as const;
 
-function Skills({ skills }: { skills: Profile["skills"] }) {
+/** Where Ethan studies, then the skill groups as keycaps. */
+function Skills({
+  skills,
+  education,
+}: {
+  skills: Profile["skills"];
+  education: Profile["education"];
+}) {
   return (
     <div className="grid gap-5">
+      <Part label="Education">
+        <div className="grid gap-1">
+          <p className="text-base font-light text-ink">{education.school}</p>
+          <p className="text-sm text-ink">
+            {education.degree}
+            {education.minor && `, minor in ${education.minor}`}
+          </p>
+          <p className="mt-1 flex items-baseline gap-2.5">
+            <span className="font-mono text-label text-ink-muted uppercase">
+              Graduates
+            </span>
+            <span className="font-mono text-sm text-ink tabular-nums">
+              {formatYearMonth(education.graduation)}
+            </span>
+          </p>
+        </div>
+        {education.coursework.length > 0 && (
+          <div className="grid gap-1.5">
+            <h4 className="font-mono text-label text-ink-muted uppercase">
+              Coursework
+            </h4>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-ink">
+              {education.coursework.map((course) => (
+                <li key={course}>{course}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Part>
       {SKILL_GROUPS.filter(([key]) => skills[key].length > 0).map(
         ([key, label]) => (
           <Part key={key} label={label}>

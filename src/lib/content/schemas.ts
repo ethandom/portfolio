@@ -34,6 +34,19 @@ export const photo = z.object({
   credit: z.string().optional(),
 });
 
+/** A book cover served from /public/covers; size is the file's own, in px. */
+export const cover = z.object({
+  src: z
+    .string()
+    .regex(
+      /^\/covers\/[\w-]+\.(webp|jpg|png)$/,
+      "expected /covers/<name>.webp|jpg|png",
+    ),
+  alt: z.string().min(1),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
 export const activitySource = z.enum(["both", "github", "leetcode"]);
 
 export const profileSchema = z.object({
@@ -104,6 +117,8 @@ export const profileSchema = z.object({
     .object({
       title: z.string().min(1),
       author: z.string().min(1),
+      /** The cover, shown in the panel (the 3D book carries it too). */
+      cover: cover.optional(),
     })
     .optional(),
   activity: z.object({

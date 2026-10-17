@@ -92,6 +92,11 @@ away:
 reading:
   title: A Philosophy of Software Design
   author: John Ousterhout
+  cover:
+    src: /covers/a-philosophy-of-software-design.webp
+    alt: The cover of A Philosophy of Software Design, a tangle of blue and green loops above a black title band.
+    width: 360
+    height: 466
 activity:
   github: ethandom
   leetcode: ethandom

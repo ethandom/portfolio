@@ -58,6 +58,8 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
       expect(model.root.getObjectByName(`Zone_${id}`)?.visible).toBe(false);
     }
     expect(model.overview.lens.hfov).toBeCloseTo(72, 3);
+    // The stand-in skyline the city hides once it's up.
+    expect(model.view?.name).toBe("View");
     for (const id of HIT_IDS) expect(model.hits.has(id)).toBe(true);
     expect(model.hits.get("relay")?.station).toBe("workbench");
     expect(model.hits.get("chess")?.station).toBe("lounge");

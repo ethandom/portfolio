@@ -36,6 +36,7 @@ import {
 import type { Terminal } from "../lib/terminal";
 import { easeInOutQuart, Tweens } from "../lib/tweens";
 import { MODEL_URL } from "../lib/urls";
+import { City } from "./city";
 import { Lighting } from "./lighting";
 
 /** Seconds. */
@@ -373,7 +374,7 @@ export function Scene({
     place(outline.current, corners && projectRect(corners, cam, width, height));
 
     // The next frame: right away while anything moves, at the screens' rate
-    // while only they do.
+    // while only they do. (The city asks for its own; components/city.tsx.)
     const moving =
       tweens.busy ||
       r.pointer.x !== pointer.x ||
@@ -417,6 +418,9 @@ export function Scene({
         onClick={click}
       />
       <Lighting lights={model.lights} />
+      {/* Its own subtree, outside the picked one: never hovered or clicked.
+          It starts loading once the room shows. */}
+      {warm && <City view={model.view} reduced={reduced} pacer={pacer} />}
     </>
   );
 }

@@ -207,8 +207,8 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
       <Canvas
         dpr={[1, 1.5]}
         // Draws only when asked (the scene's Pacer): every frame while
-        // something moves, a low rate for the bench screens, nothing while
-        // all holds still.
+        // something moves, a low rate for the screens and the city's live
+        // touches, nothing while all holds still.
         frameloop="demand"
         camera={{ near: 0.05, far: 5000 }}
         // Logarithmic depth: the bench is centimeters away and the skyline a

@@ -53,6 +53,8 @@ export type Station = {
 
 export type WorkbenchModel = {
   root: Object3D;
+  /** The stand-in skyline (`View`), until the city replaces it (components/city.tsx). */
+  view: Object3D | null;
   /** Camera_Main looking at Cam_Target. */
   overview: Shot;
   stations: Map<StationId, Station>;
@@ -298,7 +300,8 @@ export function prepareModel(source: Object3D): WorkbenchModel {
   const owned: Material[] = [];
 
   // The skyline sits behind glass nothing can click through.
-  root.getObjectByName("View")?.traverse((o) => {
+  const view = root.getObjectByName("View") ?? null;
+  view?.traverse((o) => {
     o.raycast = noRaycast;
   });
 
@@ -470,6 +473,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
 
   return {
     root,
+    view,
     overview: shot(root, "Camera_Main", "Cam_Target"),
     stations,
     hits,

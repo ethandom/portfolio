@@ -1,13 +1,16 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr";
 import { Led, SpecLabel } from "@/components/manual";
 import { Button } from "@/components/ui/button";
+import { CopyEmail } from "@/features/contact";
 import {
   CorePoints,
   DemoVideo,
   EntryFigure,
   PeriodLine,
 } from "@/features/experience";
+import { VoiceMemo } from "@/features/voice-memo";
 import { type Panels, TryCommand } from "@/features/workbench";
 import {
   formatPeriod,
@@ -32,7 +35,9 @@ export function getPanels(): Panels {
   const experience = getExperience();
   const conturo = experience.find((e) => e.slug === "conturo");
   const google = experience.find((e) => e.slug === "google");
+  const cpa = experience.find((e) => e.slug === "center-for-puppetry-arts");
   const relay = getProject("usb-relay-driver");
+  const tempr = getProject("tempr");
 
   return {
     ...(profile.reading && {
@@ -70,6 +75,25 @@ export function getPanels(): Panels {
         body: <Google entry={google} />,
       },
     }),
+    ...(tempr && {
+      tempr: {
+        kicker: "Projects",
+        title: tempr.title,
+        body: <ProjectPanel project={tempr} />,
+      },
+    }),
+    ...(cpa && {
+      cpa: {
+        kicker: "Work History",
+        title: cpa.org,
+        body: <PastRole entry={cpa} />,
+      },
+    }),
+    contact: {
+      kicker: "Contact",
+      title: profile.contact.heading,
+      body: <Contact profile={profile} />,
+    },
   };
 }
 
@@ -212,21 +236,12 @@ function Skills({
 const TRY = ["set 3 on", "toggle 1", "write-mask 0xA5", "reset", "help"];
 
 /**
- * The relay driver, beside the board it drives: when, what, the top
- * impact lines, command keys that run on the monitor, the stack, the repo.
+ * The relay driver, beside the board it drives, with command keys that run
+ * on the monitor.
  */
 function Relay({ project }: { project: Project }) {
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-1.5">
-        <SpecLabel as="p">{formatPeriod(project.period)}</SpecLabel>
-        <p className="text-sm text-ink">{project.summary}</p>
-      </div>
-      <CorePoints
-        entry={{ highlights: project.highlights.slice(0, 3) }}
-        size="sm"
-        className="gap-3"
-      />
+    <ProjectPanel project={project}>
       <Part label="Try it on the monitor">
         <ul aria-label="relayctl commands" className="flex flex-wrap gap-2">
           {TRY.map((command) => (
@@ -236,6 +251,39 @@ function Relay({ project }: { project: Project }) {
           ))}
         </ul>
       </Part>
+    </ProjectPanel>
+  );
+}
+
+/**
+ * A project on the bench (the relay driver, Tempr): the part Ethan played
+ * when it was a team's, when, what, the top impact lines, anything the
+ * panel adds (`children`), the stack, the repo.
+ */
+function ProjectPanel({
+  project,
+  children,
+}: {
+  project: Project;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-1.5">
+        {project.role && (
+          <SpecLabel as="p" tone="ink">
+            {project.role}
+          </SpecLabel>
+        )}
+        <SpecLabel as="p">{formatPeriod(project.period)}</SpecLabel>
+        <p className="text-sm text-ink">{project.summary}</p>
+      </div>
+      <CorePoints
+        entry={{ highlights: project.highlights.slice(0, 3) }}
+        size="sm"
+        className="gap-3"
+      />
+      {children}
       {project.stack.length > 0 && (
         <Part label="Built with">
           <Keycaps names={project.stack} label="Tools" />
@@ -263,6 +311,98 @@ function Google({ entry }: { entry: Experience }) {
       <RoleLine entry={entry} />
       <CorePoints entry={entry} size="sm" className="gap-3" />
       <EntryFigure entry={entry} number={1} compact />
+    </div>
+  );
+}
+
+/**
+ * A past role, Work History's log row at panel size: the role and dates,
+ * the core points, the tools, then the row's figure, fitted to the column.
+ */
+function PastRole({ entry }: { entry: Experience }) {
+  return (
+    <div className="grid gap-5">
+      <RoleLine entry={entry} />
+      <CorePoints entry={entry} size="sm" className="gap-3" />
+      {entry.stack.length > 0 && (
+        <Part label="Built with">
+          <Keycaps names={entry.stack} label="Tools" />
+        </Part>
+      )}
+      <EntryFigure entry={entry} number={1} compact />
+    </div>
+  );
+}
+
+/**
+ * How to reach Ethan, opened from the mic: the footer's contact block at
+ * panel size (availability, the note, the email keys, each channel spelled
+ * out), then a voice memo.
+ */
+function Contact({ profile }: { profile: Profile }) {
+  const { status, links, contact } = profile;
+  const host = (url: string) => url.replace(/^https:\/\/(www\.)?/, "");
+  const channels = [
+    { label: "Email", value: links.email, href: `mailto:${links.email}` },
+    {
+      label: "LinkedIn",
+      value: host(links.linkedin),
+      href: links.linkedin,
+      external: true,
+    },
+    {
+      label: "GitHub",
+      value: host(links.github),
+      href: links.github,
+      external: true,
+    },
+  ];
+
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-3">
+        <p className="flex items-center gap-2 text-sm text-ink-muted">
+          <Led state={status.available ? "live" : "off"} />
+          {status.label}
+        </p>
+        <p className="text-sm text-ink">{contact.note}</p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button asChild>
+            <a href={`mailto:${links.email}`}>Email me</a>
+          </Button>
+          <CopyEmail email={links.email} size="default" />
+        </div>
+      </div>
+      <dl className="grid border-t border-strong">
+        {channels.map((channel) => (
+          <div
+            key={channel.label}
+            className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-3 border-b border-hairline py-2"
+          >
+            <dt className="font-mono text-label text-ink-muted uppercase">
+              {channel.label}
+            </dt>
+            <dd className="min-w-0">
+              <a
+                href={channel.href}
+                className="text-sm [overflow-wrap:anywhere] text-ink underline decoration-rule decoration-1 underline-offset-4 transition-colors duration-(--dur-fast) hover:decoration-accent"
+                {...(channel.external
+                  ? { target: "_blank", rel: "noreferrer" }
+                  : {})}
+              >
+                {channel.value}
+                {channel.external && (
+                  <span aria-hidden className="ml-1 text-ink-muted">
+                    ↗
+                  </span>
+                )}
+              </a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {/* VoiceMemo brings its own heading and privacy line. */}
+      <VoiceMemo email={links.email} />
     </div>
   );
 }

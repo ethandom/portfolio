@@ -23,17 +23,12 @@ import { cn } from "@/lib/cn";
  * named by kind only, never by site (see the data-source rule).
  */
 
-const TILE = 56;
-const PITCH = 116;
-const PAD = 32;
-const LANE = { top: 50, mid: 110, bottom: 170 } as const;
-const WIDTH = 2 * PAD + 6 * PITCH + TILE;
-const HEIGHT = 226;
+type Lane = "top" | "mid" | "bottom";
 
 type Node = {
   id: string;
   col: number;
-  lane: keyof typeof LANE;
+  lane: Lane;
   name: string;
   /** A StackMark name, or an icon on an ink tile for steps that are not one tool. */
   mark?: string;
@@ -110,18 +105,82 @@ const EXAMPLES: Example[] = [
   ],
 ];
 
-const left = (n: Node) => PAD + n.col * PITCH;
-const cy = (n: Node) => LANE[n.lane];
+type Point = { x: number; y: number };
+type GatePort = "true" | "false";
+
+/** The gate's two outputs sit either side of its middle: true toward the top lane. */
 const GATE_PORT = { true: -12, false: 12 };
 
-function wire(from: Node, to: Node, port?: "true" | "false") {
-  const x1 = left(from) + TILE;
-  const y1 = cy(from) + (port ? GATE_PORT[port] : 0);
-  const x2 = left(to);
-  const y2 = cy(to);
-  const dx = (x2 - x1) / 2;
-  return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
-}
+/**
+ * Where everything sits on the canvas. Wide, the steps run left to right
+ * with each name under its keycap; compact (a narrow panel), they run top
+ * to bottom with each name beside its keycap, so the canvas fits the column
+ * instead of scrolling. The lanes are the same either way.
+ */
+type Layout = {
+  /** Keycap size. */
+  tile: number;
+  width: number;
+  height: number;
+  label: "under" | "beside";
+  /** The keycap's top-left corner. */
+  at: (n: Node) => Point;
+  /** Where wires come in, and where they leave (the gate has two outputs). */
+  input: (n: Node) => Point;
+  output: (n: Node, port?: GatePort) => Point;
+  /** A wire from an output to an input, eased out of one and into the other. */
+  wire: (a: Point, b: Point) => string;
+};
+
+const WIDE: Layout = (() => {
+  const tile = 56;
+  const pitch = 116;
+  const pad = 32;
+  const lane = { top: 50, mid: 110, bottom: 170 };
+  const x = (n: Node) => pad + n.col * pitch;
+  return {
+    tile,
+    width: 2 * pad + 6 * pitch + tile,
+    height: 226,
+    label: "under",
+    at: (n) => ({ x: x(n), y: lane[n.lane] - tile / 2 }),
+    input: (n) => ({ x: x(n), y: lane[n.lane] }),
+    output: (n, port) => ({
+      x: x(n) + tile,
+      y: lane[n.lane] + (port ? GATE_PORT[port] : 0),
+    }),
+    wire: (a, b) => {
+      const d = (b.x - a.x) / 2;
+      return `M${a.x},${a.y} C${a.x + d},${a.y} ${b.x - d},${b.y} ${b.x},${b.y}`;
+    },
+  };
+})();
+
+const COMPACT: Layout = (() => {
+  const tile = 40;
+  const row = 68;
+  const pad = 16;
+  // Keycap centers, left to right. A top-lane name ends clear of the
+  // bottom-lane keycap beside it.
+  const lane = { top: 30, mid: 107, bottom: 184 };
+  const y = (n: Node) => pad + n.col * row;
+  return {
+    tile,
+    width: 296,
+    height: 2 * pad + 6 * row + tile,
+    label: "beside",
+    at: (n) => ({ x: lane[n.lane] - tile / 2, y: y(n) }),
+    input: (n) => ({ x: lane[n.lane], y: y(n) }),
+    output: (n, port) => ({
+      x: lane[n.lane] + (port ? GATE_PORT[port] : 0),
+      y: y(n) + tile,
+    }),
+    wire: (a, b) => {
+      const d = (b.y - a.y) / 2;
+      return `M${a.x},${a.y} C${a.x},${a.y + d} ${b.x},${b.y - d} ${b.x},${b.y}`;
+    },
+  };
+})();
 
 /** Each step starts STEP after the last; it runs for RUN, then its wire carries the record on. */
 const STEP = 760;
@@ -134,8 +193,18 @@ type NodeState = "idle" | "running" | "done" | "off";
  * Fig. for the Center for Puppetry Arts: the data pipeline as a workflow.
  * Execute it to watch an example record go from HTML to the directory, or
  * be held when the classifier is unsure.
+ *
+ * `compact`: in a narrow panel the canvas runs top to bottom and fits the
+ * column instead of scrolling sideways, and the frame's margins tighten.
  */
-export function WorkflowFigure({ number }: { number: number }) {
+export function WorkflowFigure({
+  number,
+  compact = false,
+}: {
+  number: number;
+  compact?: boolean;
+}) {
+  const layout = compact ? COMPACT : WIDE;
   /** Milliseconds into the run; null before the first one. */
   const [t, setT] = useState<number | null>(null);
   /** Runs so far; the record alternates with each one. */
@@ -191,13 +260,17 @@ export function WorkflowFigure({ number }: { number: number }) {
       title="Data pipeline"
       meta={!ran ? `${NODES.length} nodes` : done ? `run ok · ${example[example.length - 1].node === "held" ? "held" : "applied"}` : `step ${printed}/${example.length}`}
       scroll
+      bodyClassName={compact ? "px-4 py-5 sm:px-4" : undefined}
       note="Rule parsers take the layouts they know and an AI reads the rest; a change reaches the directory only when the classifier is sure of it."
     >
-      <div className="mx-auto grid w-fit gap-6">
-        <div className="relative" style={{ width: WIDTH, height: HEIGHT }}>
-          <svg aria-hidden width={WIDTH} height={HEIGHT} className="pointer-events-none absolute inset-0 font-mono">
+      <div className={cn("grid", compact ? "w-full gap-5" : "mx-auto w-fit gap-6")}>
+        {/* Auto margins, not centering: a canvas wider than a very narrow column still scrolls from its left edge. */}
+        <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
+          <svg aria-hidden width={layout.width} height={layout.height} className="pointer-events-none absolute inset-0 font-mono">
             {EDGES.map(([a, b, port]) => {
-              const d = wire(BY_ID[a], BY_ID[b], port);
+              const from = layout.output(BY_ID[a], port);
+              const to = layout.input(BY_ID[b]);
+              const d = layout.wire(from, to);
               const k = carried(a, b);
               return (
                 <g key={`${a}-${b}`}>
@@ -212,33 +285,39 @@ export function WorkflowFigure({ number }: { number: number }) {
                     strokeDashoffset={1 - k}
                     opacity={k > 0 ? 1 : 0}
                   />
-                  {port && <EdgeTag edge={[BY_ID[a], BY_ID[b]]} port={port} />}
+                  {/* A symmetric cubic passes through the midpoint of its ends. */}
+                  {port && <EdgeTag at={{ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }} port={port} />}
                 </g>
               );
             })}
           </svg>
           {NODES.map((n) => (
-            <NodeTile key={n.id} node={n} state={state(n)} />
+            <NodeTile key={n.id} node={n} state={state(n)} layout={layout} />
           ))}
-          <svg aria-hidden width={WIDTH} height={HEIGHT} className="pointer-events-none absolute inset-0">
+          <svg aria-hidden width={layout.width} height={layout.height} className="pointer-events-none absolute inset-0">
             {NODES.map((n) => (
               <g key={n.id}>
-                {n.col > 0 && <Port x={left(n)} y={cy(n)} />}
+                {n.col > 0 && <Port at={layout.input(n)} />}
                 {n.id === "gate" ? (
                   <>
-                    <Port x={left(n) + TILE} y={cy(n) + GATE_PORT.true} />
-                    <Port x={left(n) + TILE} y={cy(n) + GATE_PORT.false} />
+                    <Port at={layout.output(n, "true")} />
+                    <Port at={layout.output(n, "false")} />
                   </>
                 ) : (
-                  n.col < 6 && <Port x={left(n) + TILE} y={cy(n)} />
+                  n.col < 6 && <Port at={layout.output(n)} />
                 )}
               </g>
             ))}
           </svg>
         </div>
 
-        {/* The canvas scrolls sideways on phones; the button stays in view. */}
-        <div className="sticky left-0 flex w-[min(100%,calc(100vw-5.25rem))] justify-end border-t border-hairline pt-4">
+        {/* The canvas scrolls sideways on phones; the button stays in view. Compact, it fits, so the row just spans the column. */}
+        <div
+          className={cn(
+            "flex justify-end border-t border-hairline pt-4",
+            !compact && "sticky left-0 w-[min(100%,calc(100vw-5.25rem))]",
+          )}
+        >
           <Button variant="outline" size="sm" onClick={execute}>
             <PlayIcon weight="light" />
             Execute workflow
@@ -288,10 +367,7 @@ export function WorkflowFigure({ number }: { number: number }) {
 }
 
 /** A gate output's name, boxed at the middle of its wire so the curve runs behind it. */
-function EdgeTag({ edge: [from, to], port }: { edge: [Node, Node]; port: "true" | "false" }) {
-  // A symmetric cubic passes through the midpoint of its ends.
-  const x = (left(from) + TILE + left(to)) / 2;
-  const y = (cy(from) + GATE_PORT[port] + cy(to)) / 2;
+function EdgeTag({ at: { x, y }, port }: { at: Point; port: GatePort }) {
   const w = port.length * 5.6 + 10;
   return (
     <g>
@@ -303,20 +379,24 @@ function EdgeTag({ edge: [from, to], port }: { edge: [Node, Node]; port: "true" 
   );
 }
 
-function Port({ x, y }: { x: number; y: number }) {
+function Port({ at: { x, y } }: { at: Point }) {
   return <circle cx={x} cy={y} r={3.5} fill="var(--surface)" stroke="var(--strong)" strokeWidth={1} />;
 }
 
-/** A node: the tool's keycap (or an ink tile) with the step's name under it. */
-function NodeTile({ node, state }: { node: Node; state: NodeState }) {
+/** A node: the tool's keycap (or an ink tile) with the step's name under it, or beside it when compact. */
+function NodeTile({ node, state, layout }: { node: Node; state: NodeState; layout: Layout }) {
   const { Icon } = node;
+  const at = layout.at(node);
+  const beside = layout.label === "beside";
   return (
     <div
       className={cn(
-        "absolute grid w-28 justify-items-center gap-2 text-center transition-opacity duration-(--dur-base)",
+        "absolute transition-opacity duration-(--dur-base)",
+        beside ? "flex items-center gap-2" : "grid w-28 justify-items-center gap-2 text-center",
         state === "off" && "opacity-40",
       )}
-      style={{ left: left(node) + TILE / 2 - 56, top: cy(node) - TILE / 2 }}
+      // Under: a 7rem column centered on the keycap.
+      style={beside ? { left: at.x, top: at.y } : { left: at.x + layout.tile / 2 - 56, top: at.y }}
     >
       <span
         className={cn(
@@ -325,11 +405,19 @@ function NodeTile({ node, state }: { node: Node; state: NodeState }) {
         )}
       >
         {node.mark ? (
-          <StackMark name={node.mark} className="size-14 [&_svg]:size-7" />
+          <StackMark
+            name={node.mark}
+            className={beside ? "size-10 [&_svg]:size-5" : "size-14 [&_svg]:size-7"}
+          />
         ) : (
           Icon && (
-            <span className="grid size-14 place-items-center rounded-xs bg-inverse text-ink-inverse">
-              <Icon weight="light" className="size-7" />
+            <span
+              className={cn(
+                "grid place-items-center rounded-xs bg-inverse text-ink-inverse",
+                beside ? "size-10" : "size-14",
+              )}
+            >
+              <Icon weight="light" className={beside ? "size-5" : "size-7"} />
             </span>
           )
         )}

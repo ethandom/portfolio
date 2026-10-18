@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
 
-/** Copies the address, for mail set up outside the browser. */
-export function CopyEmail({ email }: { email: string }) {
+/**
+ * Copies the address, for mail set up outside the browser. `size` matches
+ * the key beside it: large in the footer, smaller in a Workbench panel.
+ */
+export function CopyEmail({
+  email,
+  size = "lg",
+}: {
+  email: string;
+  size?: ComponentProps<typeof Button>["size"];
+}) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -15,7 +24,7 @@ export function CopyEmail({ email }: { email: string }) {
 
   return (
     <Button
-      size="lg"
+      size={size}
       variant="outline"
       onClick={() =>
         // Blocked clipboards (permissions, embeds) leave the key as it was.

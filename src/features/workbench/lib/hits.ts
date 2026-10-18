@@ -14,6 +14,8 @@ export const HIT_IDS = [
   "frame",
   "rack",
   "book",
+  "headphones",
+  "puppet",
 ] as const;
 
 export type HitId = (typeof HIT_IDS)[number];
@@ -25,13 +27,15 @@ export const HIT_LABELS: Record<HitId, string> = {
   monitor: "Terminal",
   laptop: "Skills",
   pi: "Raspberry Pi 4",
-  mic: "Microphone",
+  mic: "Contact",
   mug: "Coffee",
   chess: "Google apprenticeship",
   frisbee: "Ultimate disc",
   frame: "U-20 Worlds",
   rack: "Conturo",
   book: "Now reading",
+  headphones: "Tempr",
+  puppet: "Center for Puppetry Arts",
 };
 
 /** The areas the camera can sit at, each with a `Zone_<id>` box. */

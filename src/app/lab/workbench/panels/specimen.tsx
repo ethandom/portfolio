@@ -16,6 +16,9 @@ const LABELS: Record<PanelId, string> = {
   skills: "Skills",
   google: "Google",
   relay: "Relay",
+  tempr: "Tempr",
+  cpa: "Puppetry",
+  contact: "Contact",
 };
 
 /**

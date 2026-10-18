@@ -58,11 +58,28 @@ describe.skipIf(!hasSceneGlb)("stations and panels in scene.glb", () => {
     for (const id of HIT_IDS) expect(model.hits.has(id), id).toBe(true);
     expect(model.hits.get("rack")?.station).toBe("rack");
     expect(model.hits.get("book")?.station).toBe("shelf");
+    expect(model.hits.get("puppet")?.station).toBe("shelf");
+    expect(model.hits.get("headphones")?.station).toBe("workbench");
     for (const id of Object.keys(HIT_PANELS) as (keyof typeof HIT_PANELS)[]) {
       expect(model.hits.get(id)?.station, id).toBeDefined();
     }
     for (const id of Object.keys(STATION_PANELS)) {
       expect(model.stations.has(id as never), id).toBe(true);
+    }
+  });
+
+  it("keeps every clickable object inside its station's zone", async () => {
+    const model = await load();
+    for (const [id, { group, station }] of model.hits) {
+      // 2 cm of slack: the Worlds frame hangs on the wall the lounge's zone ends at.
+      const zone = box(model.stations.get(station)!.corners).expandByScalar(
+        0.02,
+      );
+      const center = new Box3().setFromObject(group).getCenter(new Vector3());
+      expect(
+        zone.containsPoint(center),
+        `${id} at ${station}: ${center.toArray().map((v) => v.toFixed(3))}`,
+      ).toBe(true);
     }
   });
 

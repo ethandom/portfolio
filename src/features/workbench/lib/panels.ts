@@ -11,6 +11,9 @@ export const PANEL_IDS = [
   "skills",
   "google",
   "relay",
+  "tempr",
+  "cpa",
+  "contact",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -42,14 +45,19 @@ export const HIT_PANELS: Partial<Record<HitId, PanelId>> = {
   book: "reading",
   relay: "relay",
   monitor: "relay",
+  headphones: "tempr",
+  puppet: "cpa",
+  mic: "contact",
 };
 
 /**
- * The edge a panel docks to: right, except the relay's, which goes left so
- * the monitor and the board stay in view beside it.
+ * The edge a panel docks to: right, except the bench's project panels
+ * (relay, Tempr), which go left so the monitor and the board stay in view
+ * beside them.
  */
 export const PANEL_SIDE: Partial<Record<PanelId, "left" | "right">> = {
   relay: "left",
+  tempr: "left",
 };
 
 /** Panels that leave focus where it is: the relay's sits beside the terminal you're typing into. */

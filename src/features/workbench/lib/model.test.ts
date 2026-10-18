@@ -1,4 +1,4 @@
-import { Box3, Mesh, Raycaster, Vector3 } from "three";
+import { Box3, Mesh, type Object3D, Raycaster, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { hasSceneGlb, loadSceneGlb } from "@/testing/scene-glb";
 import { ACTIONS, type ActionContext } from "./actions";
@@ -94,18 +94,23 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
     expect(meshes).toBeLessThan(250);
     expect(model.root.getObjectByName("Static_Bench")).toBeDefined();
 
-    // From the stool, a ray at the relay board hits the board first.
+    // From the stool, a ray at the relay board hits the board first, and one
+    // at the headphones' stand (in plain view behind the tray) hits them.
     const { shot } = model.stations.get("workbench")!;
-    const board = model.hits.get("relay")!.group;
-    const target = new Box3().setFromObject(board).getCenter(new Vector3());
-    const ray = new Raycaster(
-      shot.position,
-      target.sub(shot.position).normalize(),
-    );
-    const hit = ray
-      .intersectObject(model.root, true)
-      .find((h) => !zoneOf(h.object));
-    expect(hitIdOf(hit?.object ?? null)).toBe("relay");
+    const firstHit = (object: Object3D) => {
+      const target = new Box3().setFromObject(object).getCenter(new Vector3());
+      const ray = new Raycaster(
+        shot.position,
+        target.sub(shot.position).normalize(),
+      );
+      const hit = ray
+        .intersectObject(model.root, true)
+        .find((h) => !zoneOf(h.object));
+      return hitIdOf(hit?.object ?? null);
+    };
+    expect(firstHit(model.hits.get("relay")!.group)).toBe("relay");
+    const stand = model.root.getObjectByName("Headphones_Stand")!;
+    expect(firstHit(stand)).toBe("headphones");
   });
 
   it("plugs the relay in, boots the terminal, and unplugs", async () => {

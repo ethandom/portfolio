@@ -1,4 +1,4 @@
-export { Credits } from "./components/credits";
+export { MapCredit } from "./components/map-credit";
 export { TryCommand } from "./components/try-command";
 export { Workbench, WorkbenchNote } from "./components/workbench";
 export {

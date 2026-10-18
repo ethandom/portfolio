@@ -191,33 +191,24 @@ export const experienceSchema = z.object({
   demo: httpsUrl.optional(),
 });
 
-/** Third-party work in a view, credited the way its source asks. */
+/** A credit a view prints, worded and linked the way its source asks. */
 export const credit = z.object({
-  /** What it is in the view: "City view". */
-  subject: z.string().min(1),
   /** The attribution itself: "© OpenStreetMap contributors". */
   notice: z.string().min(1),
-  /** The license's short name, printed after the notice: "ODbL". */
-  license: z.string().min(1).optional(),
-  /** The source or its copyright page; the notice links there. */
-  href: httpsUrl.optional(),
-  /**
-   * Always printed in the corner, not only in the list. OpenStreetMap asks
-   * for its credit where the map shows, without a click to find it.
-   */
-  onScreen: z.boolean().default(false),
+  /** The source's copyright page; the notice links there. */
+  href: httpsUrl,
 });
 
-/** content/credits.md: the third-party credits each view owes. */
+/**
+ * content/credits.md: the credits the views print on screen. The full list of
+ * third-party work is CREDITS.md at the repo root.
+ */
 export const creditsSchema = z.object({
-  /** The Workbench scene's, listed under its Credits key. */
-  workbench: z
-    .array(credit)
-    .min(1)
-    .refine(
-      (list) => list.filter((c) => c.onScreen).length <= 1,
-      "only one credit fits on screen beside the Credits key",
-    ),
+  /**
+   * The Workbench's city view: OpenStreetMap asks for its credit where the
+   * map shows, without a click to find it.
+   */
+  workbench: credit,
 });
 
 /** Normalized contribution day, shared by GitHub and LeetCode sources. */

@@ -9,12 +9,7 @@ import {
   getProfile,
   getProjects,
 } from ".";
-import {
-  creditsSchema,
-  experienceSchema,
-  profileSchema,
-  projectSchema,
-} from "./schemas";
+import { experienceSchema, profileSchema, projectSchema } from "./schemas";
 
 // Loading everything is the build-time validation: any bad frontmatter throws here.
 describe("content", () => {
@@ -44,7 +39,7 @@ describe("content", () => {
     expect(projects.length).toBeGreaterThan(0);
     expect(experience.length).toBeGreaterThan(0);
     expect(getActivitySnapshot()).toBeTruthy();
-    expect(credits.workbench.length).toBeGreaterThan(0);
+    expect(credits.workbench.notice).toBeTruthy();
   });
 
   it("has unique order values", () => {
@@ -87,12 +82,8 @@ describe("content", () => {
         "utf8",
       ),
     ) as { credit: string };
-    const onScreen = credits.workbench.find((c) => c.onScreen);
-    expect(onScreen?.notice).toBe(manifest.credit);
+    expect(credits.workbench.notice).toBe(manifest.credit);
   });
-
-  // GrabCAD refuses automated fetches, so the name comes from Ethan.
-  it.todo("names the USB relay board CAD's author, from its GrabCAD page");
 
   it("features at least one project", () => {
     expect(projects.some((p) => p.featured)).toBe(true);
@@ -136,18 +127,6 @@ describe("schemas", () => {
       resume: "javascript:alert(1)",
     });
     expect(r.success).toBe(false);
-  });
-
-  it("keeps at most one credit on screen", () => {
-    const city = { subject: "City", notice: "© Map", onScreen: true };
-    const pi = { subject: "Pi", notice: "© Pi" };
-    expect(creditsSchema.safeParse({ workbench: [city, pi] }).success).toBe(
-      true,
-    );
-    expect(
-      creditsSchema.safeParse({ workbench: [city, { ...pi, onScreen: true }] })
-        .success,
-    ).toBe(false);
   });
 
   it("rejects figure ids no feature can draw", () => {

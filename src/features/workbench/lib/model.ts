@@ -1,19 +1,24 @@
 import {
   AdditiveBlending,
   Box3,
+  type Camera,
+  CanvasTexture,
   Color,
   DataTexture,
   type Material,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   type Object3D,
   PerspectiveCamera,
   Quaternion,
   RGBAFormat,
+  type Scene,
   Sprite,
   SpriteMaterial,
+  Texture,
   Vector3,
+  Vector4,
+  type WebGLRenderer,
 } from "three";
 import { acceleratedRaycast, CENTER, computeBoundsTree } from "three-mesh-bvh";
 import { Cable } from "./cable";
@@ -25,9 +30,6 @@ import {
   STATION_IDS,
   stationOf,
 } from "./hits";
-
-/** Served from public/workbench; built by assets/workbench/build.sh (Blender export, meshopt + WebP), Y up, meters. */
-export const MODEL_URL = "/workbench/scene.glb";
 
 /** Hover tint: emissive pushed toward signal orange. */
 const GLOW_COLOR = new Color("#ff4f00");
@@ -64,6 +66,11 @@ export type WorkbenchModel = {
   /** LED materials (this model's own copies) and their lit intensity. */
   /** Relay channel LEDs in channel order (LED_1 = channel 0), and the Pi's activity LED. */
   leds: { relay: MeshStandardMaterial[]; pi: MeshStandardMaterial };
+  /**
+   * Builds the raycast BVH a slice at a time (see bvhBuilder): for up to
+   * `budget` ms, all of it without one. True once every mesh has its tree.
+   */
+  buildBvh: (budget?: number) => boolean;
   /** Light positions, world space. */
   lights: {
     lamp: Vector3;
@@ -128,28 +135,139 @@ function shot(root: Object3D, camera: string, target: string): Shot {
  * Raycasts through a BVH. The set dressing ships merged (Static_* meshes,
  * one per region), and a plain raycast tests every triangle of every mesh
  * whose bounds the ray crosses: ~9 ms a pointer move at the bench. CENTER
- * builds the whole scene in ~150 ms; the trees stay on the cached geometry,
- * so a re-prepared model reuses them. Meshes that already opt out of
- * raycasts are left alone.
+ * builds the whole scene in ~150 ms, so the scene builds it in idle slices
+ * after its first frame; a mesh keeps the plain (slower, same) raycast
+ * until its tree is in. The trees stay on the cached geometry, so a
+ * re-prepared model reuses them. Meshes that already opt out of raycasts
+ * are left alone.
  */
-function accelerate(root: Object3D) {
+function bvhBuilder(root: Object3D) {
+  const queue: Mesh[] = [];
+  root.traverse((o) => {
+    if (o instanceof Mesh && o.raycast === Mesh.prototype.raycast) {
+      queue.push(o);
+    }
+  });
   // Building a tree reorders its geometry's index in place, and the export's
   // dedup makes same-topology meshes (the zone boxes, matching chess pieces)
   // share one index: each build scrambled the trees built before it, and
   // hovers missed. So a geometry gets its own index before its tree.
   const indices = new Set<unknown>();
-  root.traverse((o) => {
-    if (!(o instanceof Mesh) || o.raycast !== Mesh.prototype.raycast) return;
-    const geometry = o.geometry;
-    if (!geometry.boundsTree) {
-      if (geometry.index && indices.has(geometry.index)) {
-        geometry.setIndex(geometry.index.clone());
+  let next = 0;
+  return (budget = Infinity) => {
+    const start = performance.now();
+    while (next < queue.length) {
+      const o = queue[next++];
+      const geometry = o.geometry;
+      if (!geometry.boundsTree) {
+        if (geometry.index && indices.has(geometry.index)) {
+          geometry.setIndex(geometry.index.clone());
+        }
+        computeBoundsTree.call(geometry, { strategy: CENTER });
       }
-      computeBoundsTree.call(geometry, { strategy: CENTER });
+      if (geometry.index) indices.add(geometry.index);
+      o.raycast = acceleratedRaycast;
+      if (performance.now() - start >= budget) break;
     }
-    if (geometry.index) indices.add(geometry.index);
-    o.raycast = acceleratedRaycast;
+    return next >= queue.length;
+  };
+}
+
+/** Milliseconds of texture uploads between yields while warming up. */
+const UPLOAD_SLICE = 12;
+/**
+ * Meshes drawn per task in warmUp's first draws. Fixed: a batch that came
+ * back quick says nothing about the next one's pipelines (growing the
+ * batches after quick ones made a 0.4 s task on a cold cache).
+ */
+const DRAW_BATCH = 6;
+
+/** The next task, without setTimeout's 4 ms clamp once calls nest. */
+const nextTask = () =>
+  new Promise<void>((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => resolve();
+    channel.port2.postMessage(null);
   });
+
+/**
+ * Readies a subtree before it shows, so its first frame doesn't stall:
+ * uploads its textures a slice at a time between tasks, compiles its
+ * shaders in parallel where the browser can (compileAsync,
+ * KHR_parallel_shader_compile), lit by `scene`'s lights, then draws it
+ * once, a few meshes a task. That last step matters on a cold shader
+ * cache: the GPU still builds each pipeline, and uploads each mesh's
+ * buffers, at its first draw (1.2 s in one task for the room on an M4 Pro,
+ * Metal). The draws land in one scissored pixel, and each batch ends with
+ * the background redrawn, so the canvas shows nothing but the background.
+ * The subtree can stay hidden until this resolves; it comes back hidden.
+ * Screen canvases upload when they first paint.
+ */
+export async function warmUp(
+  renderer: WebGLRenderer,
+  root: Object3D,
+  camera: Camera,
+  scene: Scene,
+) {
+  const textures = new Set<Texture>();
+  const drawables: Object3D[] = [];
+  root.traverse((o) => {
+    if (!(o instanceof Mesh || o instanceof Sprite)) return;
+    for (const m of [o.material].flat() as Material[]) {
+      for (const value of Object.values(m)) {
+        if (value instanceof Texture && !(value instanceof CanvasTexture)) {
+          textures.add(value);
+        }
+      }
+    }
+    // Only what a frame would draw: shown, under shown parents (the root aside).
+    for (let p: Object3D | null = o; p && p !== root; p = p.parent) {
+      if (!p.visible) return;
+    }
+    drawables.push(o);
+  });
+  let start = performance.now();
+  for (const texture of textures) {
+    renderer.initTexture(texture);
+    if (performance.now() - start < UPLOAD_SLICE) continue;
+    await nextTask();
+    start = performance.now();
+  }
+  await renderer.compileAsync(root, camera, scene);
+
+  const culled = new Map(drawables.map((o) => [o, o.frustumCulled]));
+  const shown = root.visible;
+  const scissor = renderer.getScissor(new Vector4());
+  const scissorTest = renderer.getScissorTest();
+  for (const o of drawables) o.visible = false;
+  try {
+    for (let i = 0; i < drawables.length; i += DRAW_BATCH) {
+      const batch = drawables.slice(i, i + DRAW_BATCH);
+      for (const o of batch) {
+        o.visible = true;
+        o.frustumCulled = false;
+      }
+      root.visible = true;
+      renderer.setScissorTest(true);
+      renderer.setScissor(0, 0, 1, 1);
+      renderer.render(scene, camera);
+      renderer.setScissorTest(scissorTest);
+      renderer.setScissor(scissor);
+      root.visible = false;
+      renderer.render(scene, camera);
+      for (const o of batch) {
+        o.visible = false;
+        o.frustumCulled = culled.get(o) ?? true;
+      }
+      await nextTask();
+    }
+  } finally {
+    for (const o of drawables) {
+      o.visible = true;
+      o.frustumCulled = culled.get(o) ?? true;
+    }
+    root.visible = shown;
+  }
 }
 
 /**
@@ -194,19 +312,15 @@ export function prepareModel(source: Object3D): WorkbenchModel {
     }
   });
 
-  // Zones: never drawn, still hit by the raycaster.
-  const hidden = new MeshBasicMaterial({
-    colorWrite: false,
-    depthWrite: false,
-  });
-  owned.push(hidden);
+  // Zones: never drawn (not even a depth-tested pass), still hit by the
+  // raycaster, which ignores visibility.
   const stations = new Map<StationId, Station>();
   for (const id of STATION_IDS) {
     // A station the build doesn't have yet is left out (model.test.ts
     // asserts every one), so the app runs on an older scene.glb.
     if (!root.getObjectByName(`Zone_${id}`)) continue;
     const zone = needMesh(root, `Zone_${id}`);
-    zone.material = hidden;
+    zone.visible = false;
     zone.geometry.computeBoundingBox();
     const { min, max } = zone.geometry.boundingBox ?? new Box3();
     const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((i) =>
@@ -276,7 +390,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
 
   // Before the cable tube joins the tree: it rebuilds its geometry as the
   // plug moves, so it keeps the plain raycast.
-  accelerate(root);
+  const buildBvh = bvhBuilder(root);
 
   const plugObject = need(root, "USB_Plug");
   const port = need(root, "USB_Port").getWorldPosition(new Vector3());
@@ -371,6 +485,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
       relay: Array.from({ length: 8 }, (_, i) => led(`LED_${i + 1}`, true)),
       pi: led("Pi_LED"),
     },
+    buildBvh,
     lights: {
       lamp: world("Lamp_Bulb"),
       lampTarget: world("Lamp_Target"),

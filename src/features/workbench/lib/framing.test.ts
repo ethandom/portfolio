@@ -133,12 +133,17 @@ describe("workbench framing", () => {
     expect(easeInOutQuart(0)).toBe(0);
     expect(easeInOutQuart(0.5)).toBe(0.5);
     expect(easeInOutQuart(1)).toBe(1);
-    const tweens = new Tweens();
+    let wakes = 0;
+    const tweens = new Tweens(() => wakes++);
     const seen: number[] = [];
     const first = tweens.run("camera", 1, (t) => seen.push(t));
+    expect(tweens.busy).toBe(true);
     tweens.tick(0.5);
     const second = tweens.run("camera", 0, (t) => seen.push(t));
     await Promise.all([first, second]);
     expect(seen).toEqual([0.5, 1]);
+    // Each start asks for a frame; nothing runs once both settle.
+    expect(wakes).toBe(2);
+    expect(tweens.busy).toBe(false);
   });
 });

@@ -38,6 +38,9 @@ export function readPalette(element: Element): Palette {
  * A CanvasTexture on a screen quad, repainted at a capped frame rate. It
  * replaces the quad's material, so it sits in the scene like any surface
  * (other objects occlude it). glTF UVs put v = 0 at the top, so no flip.
+ * Every repaint puts its material back on the quad: React can build a
+ * screen twice on mount and keep the first, and the second must not keep
+ * the quad.
  */
 abstract class CanvasScreen {
   protected readonly g: CanvasRenderingContext2D;
@@ -48,7 +51,7 @@ abstract class CanvasScreen {
   private last = -Infinity;
 
   constructor(
-    quad: ScreenQuad,
+    private readonly quad: ScreenQuad,
     protected palette: Palette,
     private fps: number,
   ) {
@@ -72,6 +75,11 @@ abstract class CanvasScreen {
     return this.last > -Infinity;
   }
 
+  /** Repaints on the next tick, whatever the rate; `painted` reads false until then. */
+  stale() {
+    this.last = -Infinity;
+  }
+
   /** `now` in seconds. */
   tick(now: number, reduced: boolean) {
     if (now - this.last < 1 / this.fps) return;
@@ -83,6 +91,7 @@ abstract class CanvasScreen {
     this.last = now;
     this.paint(now, reduced);
     this.texture.needsUpdate = true;
+    this.quad.mesh.material = this.material;
   }
 
   protected abstract paint(now: number, reduced: boolean): void;
@@ -167,6 +176,11 @@ export class MonitorScreen extends CanvasScreen {
 
   idle() {
     this.bootedAt = null;
+  }
+
+  override stale() {
+    super.stale();
+    this.shown = "";
   }
 
   override tick(now: number, reduced: boolean) {

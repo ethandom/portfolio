@@ -23,7 +23,8 @@ import {
   shotPath,
 } from "../lib/framing";
 import { HIT_IDS, type HitId, hitIdOf, type StationId } from "../lib/hits";
-import { MODEL_URL, prepareModel, setGlow } from "../lib/model";
+import { prepareModel, setGlow, warmUp } from "../lib/model";
+import { Pacer } from "../lib/pacer";
 import { solidHit, zoneAt } from "../lib/picking";
 import { bindBoard } from "../lib/relay-board";
 import {
@@ -34,6 +35,7 @@ import {
 } from "../lib/screens";
 import type { Terminal } from "../lib/terminal";
 import { easeInOutQuart, Tweens } from "../lib/tweens";
+import { MODEL_URL } from "../lib/urls";
 import { Lighting } from "./lighting";
 
 /** Seconds. */
@@ -43,6 +45,31 @@ const PARALLAX = {
   overview: new Vector2(0.08, 0.05),
   station: new Vector2(0.03, 0.02),
 };
+/**
+ * Frames a second while only the bench screens animate (the laptop's 30 is
+ * the fastest of them). The Canvas draws on demand: every frame while
+ * something moves, at this rate for the screens, otherwise not at all.
+ */
+const SCREEN_FPS = 30;
+/** A frame this long (s) after the one before ends an idle spell: it steps as one frame, not the whole gap. */
+const IDLE_GAP = 0.25;
+/** The rig's damping snaps to its target this close: pointer units, and meters of parallax (both well under a pixel). */
+const SETTLE = { pointer: 1e-3, amplitude: 1e-4 };
+/** Milliseconds of BVH building per idle slice. */
+const BVH_SLICE = 8;
+
+const settle = (value: number, target: number, within: number) =>
+  Math.abs(value - target) < within ? target : value;
+
+/** Runs `step` when the browser is idle (or soon, without requestIdleCallback); returns the cancel. */
+function whenIdle(step: () => void) {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(step, { timeout: 500 });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(step, 16);
+  return () => clearTimeout(id);
+}
 
 // scene.glb is meshopt-compressed (assets/workbench/build.sh); no Draco.
 useGLTF.preload(MODEL_URL, false, true);
@@ -101,7 +128,8 @@ function place(el: HTMLElement | null, rect: Rect | null | undefined) {
  * outline on hover; a zone takes the camera to its station, where objects
  * do things in place. Parallax everywhere, smaller at stations. The bench
  * monitor paints `terminal`, and the relay LEDs follow its mask once the
- * board has booted.
+ * board has booted. The room stays hidden until its textures are up and
+ * its shaders compiled (`onReady` then), so the first frame doesn't stall.
  */
 export function Scene({
   api,
@@ -140,7 +168,13 @@ export function Scene({
 }) {
   const { scene } = useGLTF(MODEL_URL, false, true);
   const model = useMemo(() => prepareModel(scene), [scene]);
-  const canvas = useThree((s) => s.gl.domElement);
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
+  const world = useThree((s) => s.scene);
+  const invalidate = useThree((s) => s.invalidate);
+  const canvas = gl.domElement;
+  const [pacer] = useState(() => new Pacer(() => invalidate()));
+  const [warm, setWarm] = useState(false);
   const screens = useMemo(() => {
     const palette = readPalette(canvas);
     return {
@@ -149,7 +183,7 @@ export function Scene({
       scope: new ScopeScreen(model.screens.scope, palette),
     };
   }, [model, canvas, terminal]);
-  const [tweens] = useState(() => new Tweens());
+  const [tweens] = useState(() => new Tweens(() => pacer.now()));
   // Per-frame state: the shot the camera is on (before parallax), the
   // smoothed pointer, and the parallax amplitude easing between modes.
   const rig = useRef({
@@ -165,8 +199,37 @@ export function Scene({
   });
 
   useEffect(() => model.dispose, [model]);
+  useEffect(() => () => pacer.dispose(), [pacer]);
   // The relay LEDs follow the terminal's mask while it's online.
   useEffect(() => bindBoard(terminal, model.leds.relay), [terminal, model]);
+  // A frame for whatever changes the picture outside a tween: a session
+  // change (the monitor, the LEDs), a hover glow, the zone outline, the
+  // pointer (parallax), reduced motion.
+  useEffect(() => terminal.subscribe(() => pacer.now()), [terminal, pacer]);
+  useEffect(() => pacer.now(), [pacer, zone, highlight, reduced]);
+  useEffect(() => {
+    const wake = () => pacer.now();
+    window.addEventListener("pointermove", wake, { passive: true });
+    return () => window.removeEventListener("pointermove", wake);
+  }, [pacer]);
+
+  useEffect(() => {
+    let live = true;
+    void warmUp(gl, model.root, camera, world).then(() => {
+      if (live) setWarm(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [gl, model, camera, world]);
+  // Once the room shows: the raycast BVH, in idle slices.
+  useEffect(() => {
+    if (!warm) return;
+    let cancel = whenIdle(function step() {
+      if (!model.buildBvh(BVH_SLICE)) cancel = whenIdle(step);
+    });
+    return () => cancel();
+  }, [warm, model]);
   useEffect(
     () => () => {
       screens.monitor.dispose();
@@ -176,6 +239,7 @@ export function Scene({
     [screens],
   );
   useEffect(() => {
+    if (!warm) return;
     const layout: Layout = Object.fromEntries(
       [...model.stations.keys()].map((id) => [id, [] as HitId[]]),
     );
@@ -184,7 +248,7 @@ export function Scene({
       if (station) layout[station]?.push(id);
     }
     onReady(layout);
-  }, [model, onReady]);
+  }, [warm, model, onReady]);
 
   function act(id: HitId) {
     if (!station || model.hits.get(id)?.station !== station) return;
@@ -230,6 +294,8 @@ export function Scene({
     );
     ALL_ACTIONS.forEach((action) => action.reset(ctx));
     b.flags.clear();
+    // Away from the bench the monitor holds still: one repaint shows the reset.
+    screens.monitor.stale();
 
     const { shot } = rig.current;
     const to = station ? model.stations.get(station)?.shot : model.overview;
@@ -246,7 +312,9 @@ export function Scene({
       });
   }, [station, model, tweens, reduced, screens, terminal]);
 
-  useFrame((state, dt) => {
+  useFrame((state, delta) => {
+    // After an idle spell the clock's delta spans it: step one frame instead.
+    const dt = delta > IDLE_GAP ? 1 / 60 : delta;
     const cam = state.camera as PerspectiveCamera;
     const { width, height } = state.size;
     const r = rig.current;
@@ -263,11 +331,28 @@ export function Scene({
       : station
         ? PARALLAX.station
         : PARALLAX.overview;
-    r.amplitude.x = MathUtils.damp(r.amplitude.x, amp.x, 3, dt);
-    r.amplitude.y = MathUtils.damp(r.amplitude.y, amp.y, 3, dt);
+    const { pointer } = state;
+    r.amplitude.x = settle(
+      MathUtils.damp(r.amplitude.x, amp.x, 3, dt),
+      amp.x,
+      SETTLE.amplitude,
+    );
+    r.amplitude.y = settle(
+      MathUtils.damp(r.amplitude.y, amp.y, 3, dt),
+      amp.y,
+      SETTLE.amplitude,
+    );
     if (reduced) r.amplitude.set(0, 0);
-    r.pointer.x = MathUtils.damp(r.pointer.x, state.pointer.x, 4, dt);
-    r.pointer.y = MathUtils.damp(r.pointer.y, state.pointer.y, 4, dt);
+    r.pointer.x = settle(
+      MathUtils.damp(r.pointer.x, pointer.x, 4, dt),
+      pointer.x,
+      SETTLE.pointer,
+    );
+    r.pointer.y = settle(
+      MathUtils.damp(r.pointer.y, pointer.y, 4, dt),
+      pointer.y,
+      SETTLE.pointer,
+    );
     drift
       .set(r.pointer.x * r.amplitude.x, r.pointer.y * r.amplitude.y, 0)
       .applyQuaternion(cam.quaternion);
@@ -275,21 +360,33 @@ export function Scene({
     cam.lookAt(r.shot.target);
     cam.updateMatrixWorld();
 
-    // The cable follows the plug; screens repaint at their own rates.
+    // The cable follows the plug; the screens repaint at their own rates,
+    // only while the camera is at the bench (each paints once otherwise).
     model.cable.update();
     const now = state.clock.elapsedTime;
-    screens.monitor.tick(now, reduced);
-    for (const screen of [screens.laptop, screens.scope]) {
+    for (const screen of [screens.monitor, screens.laptop, screens.scope]) {
       if (station === "workbench" || !screen.painted) screen.tick(now, reduced);
     }
 
     // Zone outline: the box's projected bounds, written straight to the DOM.
     const corners = station || !zone ? null : model.stations.get(zone)?.corners;
     place(outline.current, corners && projectRect(corners, cam, width, height));
+
+    // The next frame: right away while anything moves, at the screens' rate
+    // while only they do.
+    const moving =
+      tweens.busy ||
+      r.pointer.x !== pointer.x ||
+      r.pointer.y !== pointer.y ||
+      r.amplitude.x !== amp.x ||
+      r.amplitude.y !== amp.y;
+    if (moving) pacer.now();
+    else if (station === "workbench" && !reduced) pacer.within(1 / SCREEN_FPS);
   });
 
   function hover(e: ThreeEvent<PointerEvent>) {
     e.stopPropagation();
+    if (!warm) return;
     if (!station) {
       onHoverZone(zoneAt(model.stations, e.intersections));
       return;
@@ -300,6 +397,7 @@ export function Scene({
 
   function click(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
+    if (!warm) return;
     if (!station) {
       const target = zoneAt(model.stations, e.intersections);
       if (target) onGo(target);
@@ -312,7 +410,12 @@ export function Scene({
 
   return (
     <>
-      <primitive object={model.root} onPointerMove={hover} onClick={click} />
+      <primitive
+        object={model.root}
+        visible={warm}
+        onPointerMove={hover}
+        onClick={click}
+      />
       <Lighting lights={model.lights} />
     </>
   );

@@ -206,13 +206,19 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
 
       <Canvas
         dpr={[1, 1.5]}
+        // Draws only when asked (the scene's Pacer): every frame while
+        // something moves, a low rate for the bench screens, nothing while
+        // all holds still.
+        frameloop="demand"
         camera={{ near: 0.05, far: 5000 }}
         // Logarithmic depth: the bench is centimeters away and the skyline a
         // kilometer or more, which a plain 24-bit depth buffer can't separate
-        // (the far towers z-fought).
+        // (the far towers z-fought). Opaque: the scene paints its own
+        // background, so the page needn't blend the canvas.
         gl={{
           toneMapping: ACESFilmicToneMapping,
           logarithmicDepthBuffer: true,
+          alpha: false,
         }}
         onPointerMissed={() => station && back()}
       >

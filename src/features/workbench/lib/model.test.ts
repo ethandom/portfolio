@@ -54,6 +54,8 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
       const station = model.stations.get(id);
       expect(station?.corners).toHaveLength(8);
       expect(station?.shot.lens.hfov).toBeGreaterThan(40);
+      // Never drawn, even as a depth pass; the raycaster still hits it.
+      expect(model.root.getObjectByName(`Zone_${id}`)?.visible).toBe(false);
     }
     expect(model.overview.lens.hfov).toBeCloseTo(72, 3);
     for (const id of HIT_IDS) expect(model.hits.has(id)).toBe(true);

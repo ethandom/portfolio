@@ -100,6 +100,9 @@ describe.skipIf(!hasSceneGlb)("stations and panels in scene.glb", () => {
 
   it("raycasts through the BVH exactly as a plain raycast would", async () => {
     const model = await load();
+    // The scene builds it in idle slices; a slice stops early, then resumes.
+    expect(model.buildBvh(0)).toBe(false);
+    expect(model.buildBvh()).toBe(true);
     const from = model.overview.position;
     let checked = 0;
     model.root.traverse((o) => {

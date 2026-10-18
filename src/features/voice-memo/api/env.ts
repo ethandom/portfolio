@@ -30,9 +30,10 @@ export function isProduction(env: VoiceMemoEnv): boolean {
 }
 
 /**
- * The switch for shipping: the Workbench (the only place the recorder lives)
- * is dev-only for now, so production builds, Vercel previews included,
- * answer 404 until VOICE_MEMO_ENABLED=1.
+ * The switch for shipping: production builds, Vercel previews included,
+ * answer 404 until VOICE_MEMO_ENABLED=1, and the Workbench (the only place
+ * the recorder lives) leaves the recorder out until then. The page is
+ * static, so flipping it takes a redeploy.
  */
 export function isEnabled(env: VoiceMemoEnv): boolean {
   if (!isProduction(env)) return true;

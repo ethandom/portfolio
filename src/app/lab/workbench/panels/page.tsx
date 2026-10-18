@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPanels } from "../_panels";
+import { getPanels } from "@/app/workbench/_panels";
 import { PanelSpecimen } from "./specimen";
 
 export const metadata: Metadata = {

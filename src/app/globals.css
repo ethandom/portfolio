@@ -18,6 +18,25 @@
   }
 }
 
+/* `dock:` where the fixed Manual / Workbench switch shows: wide and tall
+   enough. Phones, upright or sideways, get the Manual only. --dock-room is
+   the strip it takes off the bottom of the screen (bottom-4 + its h-10), so
+   pinned layouts and the page end can stay clear of it. Registered as a
+   <length> so scripts read it in px. */
+@custom-variant dock (@media (width >= 48rem) and (height >= 32rem));
+
+@property --dock-room {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  @variant dock {
+    --dock-room: 3.5rem;
+  }
+}
+
 /* shadcn semantic names mapped onto the Shop Manual tokens, so copied-in
    primitives pick up the look before they're restyled */
 @theme inline {

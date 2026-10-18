@@ -115,7 +115,10 @@ export function SpreadBook({
       const above = (head.current?.offsetHeight ?? 0) + 32;
       // Only the book shrinks; the header keeps the full chapter width.
       const bound = tallest + LEAVES * STEP_Y + BOARD;
-      const room = window.innerHeight - 2 * PIN_TOP - above;
+      // The view switch docked at the bottom takes its strip too (px; see
+      // --dock-room in globals.css).
+      const dock = parseFloat(getComputedStyle(el).getPropertyValue("--dock-room")) || 0;
+      const room = window.innerHeight - 2 * PIN_TOP - dock - above;
       const fit = Math.min(1, room / bound);
       setScale(fit);
       setHeight(above + bound * fit);

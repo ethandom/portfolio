@@ -11,6 +11,7 @@ import {
   PeriodLine,
 } from "@/features/experience";
 import { VoiceMemo } from "@/features/voice-memo";
+import { voiceMemoEnabled } from "@/features/voice-memo/server";
 import { type Panels, TryCommand } from "@/features/workbench";
 import {
   formatPeriod,
@@ -366,7 +367,7 @@ function PastRole({ entry }: { entry: Experience }) {
 /**
  * How to reach Ethan, opened from the mic: the footer's contact block at
  * panel size (availability, the note, the email keys, each channel spelled
- * out), then a voice memo.
+ * out), then a voice memo where the endpoint takes them.
  */
 function Contact({ profile }: { profile: Profile }) {
   const { status, links, contact } = profile;
@@ -430,8 +431,9 @@ function Contact({ profile }: { profile: Profile }) {
           </div>
         ))}
       </dl>
-      {/* VoiceMemo brings its own heading and privacy line. */}
-      <VoiceMemo email={links.email} />
+      {/* VoiceMemo brings its own heading and privacy line. Left out where
+          its endpoint is off (production until VOICE_MEMO_ENABLED=1). */}
+      {voiceMemoEnabled() && <VoiceMemo email={links.email} />}
     </div>
   );
 }

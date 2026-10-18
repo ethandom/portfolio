@@ -2,6 +2,7 @@ import { AwayFromKeyboard } from "@/features/about";
 import { Contact } from "@/features/contact";
 import { WorkHistory } from "@/features/experience";
 import { Hero } from "@/features/hero";
+import { ModeSwitch } from "@/features/mode-switch";
 import { Projects } from "@/features/projects";
 import { Specifications } from "@/features/specs";
 import { siteConfig } from "@/config/site";
@@ -27,6 +28,7 @@ export default function ManualPage() {
         </div>
       </main>
       <Contact chapter={5} />
+      <ModeSwitch current="manual" />
     </>
   );
 }

@@ -48,7 +48,7 @@ export function Contact({ chapter }: { chapter: number }) {
         data-theme="dark"
         className="scroll-mt-8 bg-bg text-ink"
       >
-        <div className="mx-auto grid w-full max-w-(--container) grid-cols-1 gap-10 px-(--gutter) pt-16 pb-10">
+        <div className="mx-auto grid w-full max-w-(--container) grid-cols-1 gap-10 px-(--gutter) pt-16 pb-[calc(--spacing(10)+var(--dock-room))]">
           <Reveal variant="rules">
             <SectionHeader
               index={chapter}

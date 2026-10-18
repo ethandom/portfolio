@@ -5,10 +5,12 @@ import { cache } from "react";
 import { CONTENT_DIR, parseDir, parseFile } from "./load";
 import {
   activitySnapshotSchema,
+  creditsSchema,
   experienceSchema,
   profileSchema,
   projectSchema,
   type ActivitySnapshot,
+  type Credits,
   type Experience,
   type Profile,
   type Project,
@@ -47,11 +49,21 @@ export const getActivitySnapshot = cache((): ActivitySnapshot =>
   ),
 );
 
+export const getCredits = cache((): Credits => {
+  const { workbench } = parseFile(
+    path.join(CONTENT_DIR, "credits.md"),
+    creditsSchema,
+  );
+  return { workbench };
+});
+
 export { formatPeriod, formatYearMonth } from "./format";
 export type {
   ActivityDay,
   ActivitySnapshot,
   ActivitySource,
+  Credit,
+  Credits,
   Experience,
   ExperienceFigure,
   Metric,

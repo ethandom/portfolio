@@ -191,6 +191,35 @@ export const experienceSchema = z.object({
   demo: httpsUrl.optional(),
 });
 
+/** Third-party work in a view, credited the way its source asks. */
+export const credit = z.object({
+  /** What it is in the view: "City view". */
+  subject: z.string().min(1),
+  /** The attribution itself: "© OpenStreetMap contributors". */
+  notice: z.string().min(1),
+  /** The license's short name, printed after the notice: "ODbL". */
+  license: z.string().min(1).optional(),
+  /** The source or its copyright page; the notice links there. */
+  href: httpsUrl.optional(),
+  /**
+   * Always printed in the corner, not only in the list. OpenStreetMap asks
+   * for its credit where the map shows, without a click to find it.
+   */
+  onScreen: z.boolean().default(false),
+});
+
+/** content/credits.md: the third-party credits each view owes. */
+export const creditsSchema = z.object({
+  /** The Workbench scene's, listed under its Credits key. */
+  workbench: z
+    .array(credit)
+    .min(1)
+    .refine(
+      (list) => list.filter((c) => c.onScreen).length <= 1,
+      "only one credit fits on screen beside the Credits key",
+    ),
+});
+
 /** Normalized contribution day, shared by GitHub and LeetCode sources. */
 export const activityDay = z.object({
   date: z.iso.date(),
@@ -207,6 +236,8 @@ export const activitySnapshotSchema = z.object({
 export type ActivitySource = z.infer<typeof activitySource>;
 export type ActivityDay = z.infer<typeof activityDay>;
 export type ActivitySnapshot = z.infer<typeof activitySnapshotSchema>;
+export type Credit = z.infer<typeof credit>;
+export type Credits = z.infer<typeof creditsSchema>;
 export type Metric = z.infer<typeof metric>;
 export type Period = z.infer<typeof period>;
 export type ProjectKind = z.infer<typeof projectKind>;

@@ -117,6 +117,8 @@ export const profileSchema = z.object({
     .object({
       title: z.string().min(1),
       author: z.string().min(1),
+      /** A sentence or two on what the book is about, under the author. */
+      summary: z.string().min(1).optional(),
       /** The cover, shown in the panel (the 3D book carries it too). */
       cover: cover.optional(),
     })

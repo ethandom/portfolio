@@ -94,10 +94,18 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
     setStation(next);
   }
 
-  /** Esc or a click on empty space: an open panel closes first. */
+  /** Esc or the Back key: an open panel closes first. */
   function back(byKeyboard = false) {
     if (panel) close();
     else go(null, byKeyboard);
+  }
+
+  /**
+   * A click on nothing clickable closes an open panel but never leaves the
+   * station: only Esc and the Back key do that (Ethan 2026-10-17).
+   */
+  function dismiss() {
+    if (panel) close();
   }
 
   function open(id: PanelId | undefined) {
@@ -220,7 +228,7 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
           logarithmicDepthBuffer: true,
           alpha: false,
         }}
-        onPointerMissed={() => station && back()}
+        onPointerMissed={dismiss}
       >
         <Suspense fallback={null}>
           <Scene
@@ -233,7 +241,7 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
             outline={outline}
             onHoverZone={setPointedZone}
             onHoverHit={setPointed}
-            onGo={(id) => (id ? go(id) : back())}
+            onGo={(id) => (id ? go(id) : dismiss())}
             onReady={setLayout}
             onAct={(id) => {
               open(HIT_PANELS[id]);

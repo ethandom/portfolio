@@ -62,9 +62,10 @@ away:
   - title: Gold Medal, WFDF World Ultimate Championships
     org: USA Ultimate National Team
     period:
-      start: 2026-06
-      end: 2026-06
+      start: 2026-07
+      end: 2026-07
     note: Defensive specialist, Logroño, Spain
+    detail: I competed in Logroño in July 2026, winning the championship with my team 15–11 against Canada in the finals.
     photos:
       - src: /photos/worlds-layout.webp
         alt: Ethan, in a white USA jersey number 90, fully extended in the air to catch a disc over a defender.
@@ -92,6 +93,7 @@ away:
 reading:
   title: A Philosophy of Software Design
   author: John Ousterhout
+  summary: Ousterhout argues that complexity is the root problem in software, and shows how to fight it with deep modules behind simple interfaces, information hiding, and investing in design instead of piling on tactical fixes.
   cover:
     src: /covers/a-philosophy-of-software-design.webp
     alt: The cover of A Philosophy of Software Design, a tangle of blue and green loops above a black title band.

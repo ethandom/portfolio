@@ -14,6 +14,7 @@ export const PANEL_IDS = [
   "tempr",
   "cpa",
   "contact",
+  "worlds",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -41,6 +42,7 @@ export const STATION_PANELS: Partial<Record<StationId, PanelId>> = {
 export const HIT_PANELS: Partial<Record<HitId, PanelId>> = {
   laptop: "skills",
   chess: "google",
+  frame: "worlds",
   rack: "conturo",
   book: "reading",
   relay: "relay",

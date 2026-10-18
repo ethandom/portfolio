@@ -166,7 +166,7 @@ export function Scene({
   outline: RefObject<HTMLDivElement | null>;
   onHoverZone: (id: StationId | null) => void;
   onHoverHit: (id: HitId | null) => void;
-  /** A zone was clicked (go there) or empty space at a station (null). */
+  /** A zone was clicked (go there), or nothing clickable at a station (null: close a panel, stay). */
   onGo: (id: StationId | null) => void;
   onReady: (layout: Layout) => void;
   /** An object was clicked or keyed at its station (after its action starts). */

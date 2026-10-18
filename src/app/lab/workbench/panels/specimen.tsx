@@ -19,6 +19,7 @@ const LABELS: Record<PanelId, string> = {
   tempr: "Tempr",
   cpa: "Puppetry",
   contact: "Contact",
+  worlds: "Worlds",
 };
 
 /**

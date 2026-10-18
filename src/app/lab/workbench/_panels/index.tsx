@@ -38,6 +38,10 @@ export function getPanels(): Panels {
   const cpa = experience.find((e) => e.slug === "center-for-puppetry-arts");
   const relay = getProject("usb-relay-driver");
   const tempr = getProject("tempr");
+  // The frame on the lounge wall holds the Worlds photos.
+  const worlds = profile.away.find((a) =>
+    a.photos?.some((p) => p.src.includes("worlds")),
+  );
 
   return {
     ...(profile.reading && {
@@ -94,10 +98,30 @@ export function getPanels(): Panels {
       title: profile.contact.heading,
       body: <Contact profile={profile} />,
     },
+    ...(worlds && {
+      worlds: {
+        kicker: "Away From the Keyboard",
+        title: worlds.title,
+        body: <Away entry={worlds} />,
+      },
+    }),
   };
 }
 
-/** The book: its cover, and who wrote it. */
+/** One "Away From the Keyboard" entry, short: who with and when, then its sentence. */
+function Away({ entry }: { entry: Profile["away"][number] }) {
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-1.5">
+        {entry.org && <SpecLabel as="p">{entry.org}</SpecLabel>}
+        <SpecLabel as="p">{formatPeriod(entry.period)}</SpecLabel>
+      </div>
+      {entry.detail && <p className="text-sm text-ink">{entry.detail}</p>}
+    </div>
+  );
+}
+
+/** The book: its cover, who wrote it, and what it's about. */
 function Reading({ reading }: { reading: NonNullable<Profile["reading"]> }) {
   const { cover } = reading;
   return (
@@ -117,12 +141,17 @@ function Reading({ reading }: { reading: NonNullable<Profile["reading"]> }) {
           className="h-auto w-full border border-strong"
         />
       )}
-      <dl className="grid content-start gap-1 text-sm">
-        <dt className="font-mono text-label text-ink-muted uppercase">
-          Author
-        </dt>
-        <dd className="text-ink">{reading.author}</dd>
-      </dl>
+      <div className="grid content-start gap-3">
+        <dl className="grid content-start gap-1 text-sm">
+          <dt className="font-mono text-label text-ink-muted uppercase">
+            Author
+          </dt>
+          <dd className="text-ink">{reading.author}</dd>
+        </dl>
+        {reading.summary && (
+          <p className="text-sm text-ink-muted">{reading.summary}</p>
+        )}
+      </div>
     </div>
   );
 }

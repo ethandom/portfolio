@@ -1,5 +1,5 @@
 export { TryCommand } from "./components/try-command";
-export { Workbench } from "./components/workbench";
+export { Workbench, WorkbenchNote } from "./components/workbench";
 export {
   PANEL_IDS,
   type PanelContent,

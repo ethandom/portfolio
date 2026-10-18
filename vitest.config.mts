@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -10,5 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Local tooling directories (like ESLint's ignores): .claude/worktrees
+    // holds other sessions' checkouts, whose tests aren't this tree's.
+    exclude: [...configDefaults.exclude, ".*/**"],
   },
 });

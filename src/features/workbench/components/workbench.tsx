@@ -72,28 +72,46 @@ export function Workbench({ panels = {} }: { panels?: Panels }) {
   const verdict = useSyncExternalStore(never, measure, () => null);
 
   if (verdict === "ok") return <WorkbenchApp panels={panels} />;
+  if (verdict) return <WorkbenchNote reason={verdict} />;
   return (
     <Backdrop>
-      {verdict ? <Unsupported fit={verdict} /> : <Loading />}
+      <Loading />
     </Backdrop>
   );
 }
 
-function Unsupported({ fit }: { fit: Exclude<Fit, "ok"> }) {
+const NOTES = {
+  small: "The Workbench is a 3D room built for a bigger screen.",
+  "no-webgl": "The Workbench is a 3D room, and this browser has WebGL turned off.",
+  failed: "The Workbench didn’t finish loading.",
+} as const;
+
+/**
+ * Shown instead of the scene: on a phone, without WebGL 2, or (from the
+ * route's error boundary) when the scene failed to load. Always a way back
+ * to the Manual; a failed load can also try again, as a full reload, since
+ * the loader keeps the failed file cached.
+ */
+export function WorkbenchNote({ reason }: { reason: keyof typeof NOTES }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-5 px-(--gutter) text-center">
-      <p className="font-mono text-label text-ink-muted uppercase">Workbench</p>
-      <h1 className="max-w-md text-xl font-light text-balance">
-        {fit === "small"
-          ? "The Workbench is a 3D room built for a bigger screen."
-          : "The Workbench is a 3D room, and this browser has WebGL turned off."}
-      </h1>
-      <p className="max-w-sm text-ink-muted text-balance">
-        The Manual has the same work, made for any screen.
-      </p>
-      <Button asChild size="lg" variant="outline">
-        <Link href="/">Read the Manual</Link>
-      </Button>
-    </div>
+    <Backdrop>
+      <div className="flex h-full flex-col items-center justify-center gap-5 px-(--gutter) text-center">
+        <p className="font-mono text-label text-ink-muted uppercase">Workbench</p>
+        <h1 className="max-w-md text-xl font-light text-balance">{NOTES[reason]}</h1>
+        <p className="max-w-sm text-ink-muted text-balance">
+          The Manual has the same work, made for any screen.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {reason === "failed" && (
+            <Button size="lg" variant="outline" onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+          )}
+          <Button asChild size="lg" variant={reason === "failed" ? "default" : "outline"}>
+            <Link href="/">Read the Manual</Link>
+          </Button>
+        </div>
+      </div>
+    </Backdrop>
   );
 }

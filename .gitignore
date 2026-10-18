@@ -44,6 +44,3 @@ next-env.d.ts
 
 # assets
 /assets
-
-# the built Workbench scene: made locally from /assets, holds third-party CAD meshes not yet cleared to publish
-/public/workbench/scene.glb

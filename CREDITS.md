@@ -12,16 +12,6 @@ OpenStreetMap building footprints and heights.
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright),
 available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/).
 
-## 3D models
-
-| Model | Author | Source |
-|---|---|---|
-| Raspberry Pi 4 Model B | Hasanain Shuja | [GrabCAD](https://grabcad.com/library/raspberry-pi-4-model-b-1) |
-| 8 Channel USB Relay Module (Numato RL80001) | Darin L | [GrabCAD](https://grabcad.com/library/8-channel-usb-relay-module-1) |
-
-These are their authors' work, from the GrabCAD community library, and are
-not covered by this repository's license.
-
 ## Poly Haven (CC0)
 
 Furniture, props and textures from [Poly Haven](https://polyhaven.com),

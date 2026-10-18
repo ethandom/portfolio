@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ModeSwitch } from "@/features/mode-switch";
-import { Workbench } from "@/features/workbench";
-import { getProfile } from "@/lib/content";
+import { Credits, Workbench } from "@/features/workbench";
+import { getCredits, getProfile } from "@/lib/content";
 import { getPanels } from "./_panels";
 
 export function generateMetadata(): Metadata {
@@ -19,12 +19,14 @@ export function generateMetadata(): Metadata {
  * The Workbench: the Manual's 3D view, a builder's loft at dusk where each
  * station opens a 2D panel. Full viewport, no doc chrome over the scene. The
  * panels are rendered here, from /content (`_panels`; their specimen is at
- * /lab/workbench/panels). Phones get a pointer back to the Manual instead.
+ * /lab/workbench/panels), and so are the scene's third-party credits
+ * (`content/credits.md`). Phones get a pointer back to the Manual instead.
  */
 export default function WorkbenchPage() {
   return (
     <>
       <Workbench panels={getPanels()} />
+      <Credits credits={getCredits().workbench} />
       <ModeSwitch current="workbench" />
     </>
   );

@@ -11,7 +11,12 @@ import {
   useState,
 } from "react";
 import { useGLTF } from "@react-three/drei";
-import { type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
+import {
+  addAfterEffect,
+  type ThreeEvent,
+  useFrame,
+  useThree,
+} from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
 import { MathUtils, Vector2, Vector3 } from "three";
 import { ACTIONS, ALL_ACTIONS, type ActionContext } from "../lib/actions";
@@ -23,7 +28,7 @@ import {
   shotPath,
 } from "../lib/framing";
 import { HIT_IDS, type HitId, hitIdOf, type StationId } from "../lib/hits";
-import { prepareModel, setGlow, warmUp } from "../lib/model";
+import { gpuDone, prepareModel, setGlow, warmUp } from "../lib/model";
 import { Pacer } from "../lib/pacer";
 import { solidHit, zoneAt } from "../lib/picking";
 import { bindBoard } from "../lib/relay-board";
@@ -130,7 +135,9 @@ function place(el: HTMLElement | null, rect: Rect | null | undefined) {
  * do things in place. Parallax everywhere, smaller at stations. The bench
  * monitor paints `terminal`, and the relay LEDs follow its mask once the
  * board has booted. The room stays hidden until its textures are up and
- * its shaders compiled (`onReady` then), so the first frame doesn't stall.
+ * its shaders compiled, so its first frame doesn't stall; once the GPU has
+ * drawn that frame, `onReady` (the loading overlay lifts) and the city
+ * starts loading, so neither shows ahead of the room.
  */
 export function Scene({
   api,
@@ -175,7 +182,9 @@ export function Scene({
   const invalidate = useThree((s) => s.invalidate);
   const canvas = gl.domElement;
   const [pacer] = useState(() => new Pacer(() => invalidate()));
+  // Warm: readied and shown. Ready: its first frame is drawn.
   const [warm, setWarm] = useState(false);
+  const [ready, setReady] = useState(false);
   const screens = useMemo(() => {
     const palette = readPalette(canvas);
     return {
@@ -214,15 +223,34 @@ export function Scene({
     return () => window.removeEventListener("pointermove", wake);
   }, [pacer]);
 
+  // Once: an effect replayed after the room shows (Strict Mode, Activity)
+  // would hide it again batch by batch. A cancelled run stops drawing.
   useEffect(() => {
-    let live = true;
-    void warmUp(gl, model.root, camera, world).then(() => {
-      if (live) setWarm(true);
+    if (warm) return;
+    const run = new AbortController();
+    void warmUp(gl, model.root, camera, world, run.signal).then(() => {
+      if (!run.signal.aborted) setWarm(true);
     });
+    return () => run.abort();
+  }, [warm, gl, model, camera, world]);
+  // The room's first frame: once one has rendered with it shown, a fence
+  // tells when the GPU has drawn it (on a cold cache that can lag seconds).
+  useEffect(() => {
+    if (!warm || ready) return;
+    const wait = new AbortController();
+    const off = addAfterEffect(() => {
+      if (!model.root.visible) return;
+      off();
+      void gpuDone(gl, wait.signal).then(() => {
+        if (!wait.signal.aborted) setReady(true);
+      });
+    });
+    pacer.now();
     return () => {
-      live = false;
+      off();
+      wait.abort();
     };
-  }, [gl, model, camera, world]);
+  }, [warm, ready, gl, model, pacer]);
   // Once the room shows: the raycast BVH, in idle slices.
   useEffect(() => {
     if (!warm) return;
@@ -240,7 +268,7 @@ export function Scene({
     [screens],
   );
   useEffect(() => {
-    if (!warm) return;
+    if (!ready) return;
     const layout: Layout = Object.fromEntries(
       [...model.stations.keys()].map((id) => [id, [] as HitId[]]),
     );
@@ -249,7 +277,7 @@ export function Scene({
       if (station) layout[station]?.push(id);
     }
     onReady(layout);
-  }, [warm, model, onReady]);
+  }, [ready, model, onReady]);
 
   function act(id: HitId) {
     if (!station || model.hits.get(id)?.station !== station) return;
@@ -387,7 +415,7 @@ export function Scene({
 
   function hover(e: ThreeEvent<PointerEvent>) {
     e.stopPropagation();
-    if (!warm) return;
+    if (!ready) return;
     if (!station) {
       onHoverZone(zoneAt(model.stations, e.intersections));
       return;
@@ -398,7 +426,7 @@ export function Scene({
 
   function click(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
-    if (!warm) return;
+    if (!ready) return;
     if (!station) {
       const target = zoneAt(model.stations, e.intersections);
       if (target) onGo(target);
@@ -419,8 +447,8 @@ export function Scene({
       />
       <Lighting lights={model.lights} />
       {/* Its own subtree, outside the picked one: never hovered or clicked.
-          It starts loading once the room shows. */}
-      {warm && <City view={model.view} reduced={reduced} pacer={pacer} />}
+          It starts loading once the room's first frame is drawn. */}
+      {ready && <City view={model.view} reduced={reduced} pacer={pacer} />}
     </>
   );
 }

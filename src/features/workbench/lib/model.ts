@@ -12,7 +12,7 @@ import {
   PerspectiveCamera,
   Quaternion,
   RGBAFormat,
-  type Scene,
+  Scene,
   Sprite,
   SpriteMaterial,
   Texture,
@@ -201,15 +201,19 @@ const nextTask = () =>
  * cache: the GPU still builds each pipeline, and uploads each mesh's
  * buffers, at its first draw (1.2 s in one task for the room on an M4 Pro,
  * Metal). The draws land in one scissored pixel, and each batch ends with
- * the background redrawn, so the canvas shows nothing but the background.
- * The subtree can stay hidden until this resolves; it comes back hidden.
- * Screen canvases upload when they first paint.
+ * the background drawn alone, so the canvas shows nothing else meanwhile.
+ * Each batch hides, draws and puts back within its task: a frame or an
+ * overlapping call never sees the subtree half hidden. Stops between steps
+ * once `signal` aborts (an effect cleaned up), so a stale run never draws
+ * over a frame that shows the room. Screen canvases upload when they first
+ * paint.
  */
 export async function warmUp(
   renderer: WebGLRenderer,
   root: Object3D,
   camera: Camera,
   scene: Scene,
+  signal?: AbortSignal,
 ) {
   const textures = new Set<Texture>();
   const drawables: Object3D[] = [];
@@ -230,46 +234,69 @@ export async function warmUp(
   });
   let start = performance.now();
   for (const texture of textures) {
+    if (signal?.aborted) return;
     renderer.initTexture(texture);
     if (performance.now() - start < UPLOAD_SLICE) continue;
     await nextTask();
     start = performance.now();
   }
+  if (signal?.aborted) return;
   await renderer.compileAsync(root, camera, scene);
 
-  const culled = new Map(drawables.map((o) => [o, o.frustumCulled]));
-  const shown = root.visible;
-  const scissor = renderer.getScissor(new Vector4());
-  const scissorTest = renderer.getScissorTest();
-  for (const o of drawables) o.visible = false;
-  try {
-    for (let i = 0; i < drawables.length; i += DRAW_BATCH) {
-      const batch = drawables.slice(i, i + DRAW_BATCH);
-      for (const o of batch) {
-        o.visible = true;
-        o.frustumCulled = false;
-      }
+  // Draws `scene`'s background and nothing else.
+  const backdrop = new Scene();
+  for (let i = 0; i < drawables.length; i += DRAW_BATCH) {
+    if (signal?.aborted) return;
+    const batch = new Set(drawables.slice(i, i + DRAW_BATCH));
+    const saved = drawables.map((o) => [o.visible, o.frustumCulled] as const);
+    const shown = root.visible;
+    const scissor = renderer.getScissor(new Vector4());
+    const scissorTest = renderer.getScissorTest();
+    try {
+      for (const o of drawables) o.visible = batch.has(o);
+      for (const o of batch) o.frustumCulled = false;
       root.visible = true;
       renderer.setScissorTest(true);
       renderer.setScissor(0, 0, 1, 1);
       renderer.render(scene, camera);
+    } finally {
       renderer.setScissorTest(scissorTest);
       renderer.setScissor(scissor);
-      root.visible = false;
-      renderer.render(scene, camera);
-      for (const o of batch) {
-        o.visible = false;
-        o.frustumCulled = culled.get(o) ?? true;
-      }
-      await nextTask();
+      drawables.forEach((o, k) => {
+        [o.visible, o.frustumCulled] = saved[k];
+      });
+      root.visible = shown;
     }
-  } finally {
-    for (const o of drawables) {
-      o.visible = true;
-      o.frustumCulled = culled.get(o) ?? true;
-    }
-    root.visible = shown;
+    backdrop.background = scene.background;
+    renderer.render(backdrop, camera);
+    await nextTask();
   }
+}
+
+/**
+ * Resolves once the GPU has run every command issued so far: a fence,
+ * checked once a frame (WebGL updates its status between tasks only). Also
+ * resolves if the context is lost or `signal` aborts, and at once without
+ * fences (WebGL 1).
+ */
+export function gpuDone(renderer: WebGLRenderer, signal?: AbortSignal) {
+  const gl = renderer.getContext();
+  if (!("fenceSync" in gl)) return Promise.resolve();
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+  if (!sync) return Promise.resolve();
+  gl.flush();
+  return new Promise<void>((resolve) => {
+    const check = () => {
+      const done =
+        signal?.aborted ||
+        gl.isContextLost() ||
+        gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED;
+      if (!done) return void requestAnimationFrame(check);
+      gl.deleteSync(sync);
+      resolve();
+    };
+    requestAnimationFrame(check);
+  });
 }
 
 /**

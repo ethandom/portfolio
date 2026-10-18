@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { type Object3D, Texture } from "three";
 import { CITY_DIR, CITY_URL, parseCity } from "../lib/city";
@@ -52,12 +52,13 @@ async function loadCity(signal: AbortSignal) {
 }
 
 /**
- * The city behind the window (lib/city.ts). It loads once the room has
- * drawn its first frame, so the room never waits on it; uploads its
- * textures and compiles its shaders before showing; then fades in and
- * takes over from the scene's stand-in `view`. If anything fails, the
- * stand-in stays and one warning says why. It asks `pacer` for frames:
- * every one while it fades in, then LIVE_FPS (none under reduced motion).
+ * The city behind the window (lib/city.ts). It loads on mount: the scene
+ * mounts it once the room's first frame is drawn, so the room never waits
+ * on it and it never shows without the room. It uploads its textures and
+ * compiles its shaders before showing, then fades in and takes over from
+ * the scene's stand-in `view`. If anything fails, the stand-in stays and
+ * one warning says why. It asks `pacer` for frames: every one while it
+ * fades in, then LIVE_FPS (none under reduced motion).
  */
 export function City({
   view,
@@ -73,11 +74,8 @@ export function City({
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const [city, setCity] = useState<CityView | null>(null);
-  const [start, setStart] = useState(false);
-  const asked = useRef(false);
 
   useEffect(() => {
-    if (!start) return;
     const controller = new AbortController();
     let built: CityView | null = null;
     loadCity(controller.signal)
@@ -98,7 +96,7 @@ export function City({
       built?.dispose();
       setCity(null);
     };
-  }, [start, gl, camera, scene]);
+  }, [gl, camera, scene]);
 
   // Takes over from the stand-in from the city's first frame.
   useEffect(
@@ -110,10 +108,6 @@ export function City({
   }, [city, pacer]);
 
   useFrame((state, dt) => {
-    if (!asked.current) {
-      asked.current = true;
-      setStart(true);
-    }
     if (!city) return;
     if (city.tick(dt, state.gl, reduced)) pacer.now();
     else if (!reduced) pacer.within(1 / LIVE_FPS);

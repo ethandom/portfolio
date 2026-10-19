@@ -1,5 +1,6 @@
 import {
   Box3,
+  InstancedMesh,
   Mesh,
   PerspectiveCamera,
   Raycaster,
@@ -65,6 +66,17 @@ describe.skipIf(!hasSceneGlb)("stations and panels in scene.glb", () => {
     }
     for (const id of Object.keys(STATION_PANELS)) {
       expect(model.stations.has(id as never), id).toBe(true);
+    }
+  });
+
+  it("outlines the objects that open a panel, and only those", async () => {
+    const model = await load();
+    for (const [id, { group }] of model.hits) {
+      let lines = 0;
+      group.traverse((o) => {
+        if (o instanceof InstancedMesh) lines++;
+      });
+      expect(lines > 0, id).toBe(HIT_PANELS[id] !== undefined);
     }
   });
 

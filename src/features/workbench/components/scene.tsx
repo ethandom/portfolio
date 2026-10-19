@@ -46,6 +46,8 @@ import { Lighting } from "./lighting";
 
 /** Seconds. */
 const CAMERA_MOVE = 1.2;
+/** Seconds the outlines take to fade in once the camera arrives. */
+const OUTLINE_FADE = 0.5;
 /** How far the camera drifts with the pointer, in meters at the edge. */
 const PARALLAX = {
   overview: new Vector2(0.08, 0.05),
@@ -209,6 +211,9 @@ export function Scene({
   });
 
   useEffect(() => model.dispose, [model]);
+  useEffect(() => {
+    model.outlines.paint(readPalette(canvas).ink);
+  }, [model, canvas]);
   useEffect(() => () => pacer.dispose(), [pacer]);
   // The relay LEDs follow the terminal's mask while it's online.
   useEffect(() => bindBoard(terminal, model.leds.relay), [terminal, model]);
@@ -305,7 +310,11 @@ export function Scene({
     if (!highlight) return;
     const glows = model.glows.get(highlight);
     setGlow(glows, true);
-    return () => setGlow(glows, false);
+    model.outlines.hover(highlight);
+    return () => {
+      setGlow(glows, false);
+      model.outlines.hover(null);
+    };
   }, [model, highlight]);
 
   // Arriving anywhere: put every station back, then glide there.
@@ -325,6 +334,9 @@ export function Scene({
     b.flags.clear();
     // Away from the bench the monitor holds still: one repaint shows the reset.
     screens.monitor.stale();
+    // The outlines wait for the camera to arrive.
+    tweens.stop("outlines");
+    model.outlines.show(null);
 
     const { shot } = rig.current;
     const to = station ? model.stations.get(station)?.shot : model.overview;
@@ -337,7 +349,13 @@ export function Scene({
       )
       .then(() => {
         // Stopped tweens resolve too: only a glide that wasn't overtaken.
-        if (station && bench.current.epoch === epoch) arrive(station);
+        if (!station || bench.current.epoch !== epoch) return;
+        model.outlines.level = 0;
+        model.outlines.show(station);
+        void tweens.run("outlines", reduced ? 0 : OUTLINE_FADE, (t) => {
+          model.outlines.level = t;
+        });
+        arrive(station);
       });
   }, [station, model, tweens, reduced, screens, terminal]);
 
@@ -389,9 +407,11 @@ export function Scene({
     cam.lookAt(r.shot.target);
     cam.updateMatrixWorld();
 
-    // The cable follows the plug; the screens repaint at their own rates,
-    // only while the camera is at the bench (each paints once otherwise).
+    // The cable follows the plug, and the outlines both; the screens repaint
+    // at their own rates, only while the camera is at the bench (each paints
+    // once otherwise).
     model.cable.update();
+    model.outlines.update(state.gl);
     const now = state.clock.elapsedTime;
     for (const screen of [screens.monitor, screens.laptop, screens.scope]) {
       if (station === "workbench" || !screen.painted) screen.tick(now, reduced);

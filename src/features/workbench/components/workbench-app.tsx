@@ -222,11 +222,13 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
         // Logarithmic depth: the bench is centimeters away and the skyline a
         // kilometer or more, which a plain 24-bit depth buffer can't separate
         // (the far towers z-fought). Opaque: the scene paints its own
-        // background, so the page needn't blend the canvas.
+        // background, so the page needn't blend the canvas. A stencil
+        // buffer for the outlines on objects that open a panel (lib/outlines.ts).
         gl={{
           toneMapping: ACESFilmicToneMapping,
           logarithmicDepthBuffer: true,
           alpha: false,
+          stencil: true,
         }}
         onPointerMissed={dismiss}
       >

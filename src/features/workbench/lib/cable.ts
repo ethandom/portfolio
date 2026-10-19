@@ -97,8 +97,12 @@ export class Cable {
     this.mesh.geometry = new TubeGeometry(curve, SEGMENTS, RADIUS, 6);
   }
 
+  /**
+   * GPU resources only, the tube stays in the tree: dev Strict Mode
+   * replays the effect that calls this and keeps drawing the model, and
+   * three uploads them again at their next draw.
+   */
   dispose() {
-    this.mesh.removeFromParent();
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
   }

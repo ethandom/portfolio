@@ -30,6 +30,8 @@ import {
   STATION_IDS,
   stationOf,
 } from "./hits";
+import { Outlines } from "./outlines";
+import { HIT_PANELS } from "./panels";
 
 /** Hover tint: emissive pushed toward signal orange. */
 const GLOW_COLOR = new Color("#ff4f00");
@@ -61,6 +63,8 @@ export type WorkbenchModel = {
   /** Each Hit_ group and the station it belongs to. */
   hits: Map<HitId, { group: Object3D; station: StationId }>;
   glows: Map<HitId, Glow[]>;
+  /** The lines around the objects at a station that open a panel. */
+  outlines: Outlines;
   /** USB_Plug and its two local positions: on the bench, and in USB_Port. */
   plug: { object: Object3D; home: Vector3; docked: Vector3 };
   cable: Cable;
@@ -488,6 +492,12 @@ export function prepareModel(source: Object3D): WorkbenchModel {
     return material;
   };
 
+  // Only the objects that open a panel; the rest (the Pi, the mug) are
+  // small surprises, not things to look for.
+  const outlines = new Outlines(
+    new Map([...hits].filter(([id]) => HIT_PANELS[id])),
+  );
+
   const strip = new Box3().setFromObject(need(root, "LED_Strip_Bench"));
   // A mesh's center, or an empty's own position (an empty has no box).
   const world = (name: string) => {
@@ -505,6 +515,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
     stations,
     hits,
     glows,
+    outlines,
     plug,
     cable,
     screens: {
@@ -528,6 +539,7 @@ export function prepareModel(source: Object3D): WorkbenchModel {
       shelf: world("Shelf_LEDs"),
     },
     dispose: () => {
+      outlines.dispose();
       cable.dispose();
       owned.forEach((m) => m.dispose());
     },

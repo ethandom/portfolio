@@ -1,4 +1,11 @@
-import { Box3, Mesh, type Object3D, Raycaster, Vector3 } from "three";
+import {
+  Box3,
+  InstancedMesh,
+  Mesh,
+  type Object3D,
+  Raycaster,
+  Vector3,
+} from "three";
 import { describe, expect, it, vi } from "vitest";
 import { hasSceneGlb, loadSceneGlb } from "@/testing/scene-glb";
 import { ACTIONS, type ActionContext } from "./actions";
@@ -86,10 +93,11 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
   it("ships the set dressing merged, and picks through it", async () => {
     const model = await load();
     // A draw call per mesh: merge.py joins the set dressing into a few
-    // Static_* meshes, one primitive per material (565 meshes before).
+    // Static_* meshes, one primitive per material (565 meshes before). The
+    // outline stamps (lib/outlines.ts) draw only at their own station.
     let meshes = 0;
     model.root.traverse((o) => {
-      if (o instanceof Mesh) meshes++;
+      if (o instanceof Mesh && !(o instanceof InstancedMesh)) meshes++;
     });
     expect(meshes).toBeLessThan(250);
     expect(model.root.getObjectByName("Static_Bench")).toBeDefined();

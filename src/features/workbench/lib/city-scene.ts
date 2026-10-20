@@ -71,6 +71,13 @@ const TRAFFIC = {
 /** Windows switch on or off every 1.5–5 minutes, fading over this long (s). */
 const WINDOWS = { minSlot: 90, maxSlot: 300, fade: 0.4 };
 
+/**
+ * How far past the view's edges (in half-widths of the view) a streak's or
+ * window's center may sit and still draw, so one just off screen can reach
+ * in. Pieces past it are culled: the camera can't see them anyway.
+ */
+export const VIEW_MARGIN = 1.25;
+
 const noRaycast = () => {};
 
 /** Uniforms every live touch shares; the scene sets them once a frame. */
@@ -94,8 +101,17 @@ const PIXELS = /* glsl */ `
   vec4 fromPixels(vec2 px, vec4 clip) {
     return vec4(px / (0.5 * uResolution) * clip.w, clip.z, clip.w);
   }
-  // Behind the camera (a station facing away): off the clip volume.
+  // Out of view: off the clip volume.
   const vec4 CLIPPED = vec4(0.0, 0.0, 2.0, 1.0);
+  // In front of the camera and within VIEW_MARGIN of the view. In front
+  // alone isn't enough: a piece far off to one side can sit a few meters
+  // deep (w near 0), where its ends project screens apart, and its quad
+  // would cross the whole view at that depth, in front of the room (a red
+  // taillight line across the lounge). In view, it's hundreds of meters deep.
+  bool inView(vec4 clip) {
+    return clip.w > 0.0
+      && all(lessThanEqual(abs(clip.xy), vec2(${VIEW_MARGIN.toFixed(2)} * clip.w)));
+  }
 `;
 
 /** Unlit, additive, depth-tested (the room hides them), never in the depth buffer. */
@@ -305,7 +321,7 @@ function traffic(tracks: Traffic[], uniforms: CityUniforms, firstId: number) {
         float m = s * aTrack.w;
         vEnds = smoothstep(0.0, ${TRAFFIC.ends.toFixed(1)}, m)
           * smoothstep(0.0, ${TRAFFIC.ends.toFixed(1)}, aTrack.w - m);
-        if (min(c.w, min(c0.w, c1.w)) <= 0.0) {
+        if (!inView(c)) {
           gl_Position = CLIPPED;
           return;
         }
@@ -428,7 +444,7 @@ function windows(list: CityWindow[], uniforms: CityUniforms, firstId: number) {
         vOn = mix(before, now, smoothstep(0.0, ${WINDOWS.fade.toFixed(2)}, clock - k * aMeta.y));
         vColor = aColor;
 
-        if (min(c.w, min(a.w, b.w)) <= 0.0) {
+        if (!inView(c)) {
           vPx = vec2(0.0);
           vHalf = vec2(0.0);
           gl_Position = CLIPPED;

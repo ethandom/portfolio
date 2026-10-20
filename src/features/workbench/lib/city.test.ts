@@ -2,14 +2,19 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import {
   type BufferGeometry,
+  type DataTexture,
+  type Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
+  PerspectiveCamera,
   Points,
   Raycaster,
+  type ShaderMaterial,
   Texture,
   Vector2,
   Vector3,
+  Vector4,
   type WebGLRenderer,
 } from "three";
 import { describe, expect, it } from "vitest";
@@ -28,7 +33,10 @@ import {
   touchOrder,
   trackLength,
 } from "./city";
-import { buildCity } from "./city-scene";
+import { hasSceneGlb, loadSceneGlb } from "@/testing/scene-glb";
+import { buildCity, VIEW_MARGIN } from "./city-scene";
+import { fitVerticalFov } from "./framing";
+import { prepareModel } from "./model";
 
 /** The manifest example in assets/workbench/city/README.md, comments dropped. */
 const README_EXAMPLE = {
@@ -502,3 +510,147 @@ describe.skipIf(!existsSync(MANIFEST))("public/workbench/city", () => {
     view.dispose();
   });
 });
+
+/** The drawing buffer the replay projects into: 1600 × 900 CSS px at 2×. */
+const BUFFER = new Vector2(3200, 1800);
+/** Camera offsets (m, across and up its view) about the parallax's reach (components/scene.tsx). */
+const DRIFTS = [-0.08, 0, 0.08];
+
+describe.skipIf(!existsSync(MANIFEST) || !hasSceneGlb)(
+  "the city's live touches, from every camera in scene.glb",
+  () => {
+    // A taillight passing ~90° off the lounge camera's view sat in front of
+    // it, a few meters deep: its streak projected millions of pixels long
+    // and drew as a red line across the room. This replays what the vertex
+    // shaders keep, at every camera, across the parallax.
+    it("culls streaks and windows out of view, so none spans the screen up close", async () => {
+      const model = prepareModel(await loadSceneGlb());
+      const manifest = parseCity(JSON.parse(readFileSync(MANIFEST, "utf8")));
+      const city = buildCity(
+        manifest,
+        manifest.layers.map(() => new Texture()),
+      );
+      city.root.updateMatrixWorld(true);
+
+      // Each piece in world space: its center and the two ends the shader projects.
+      const pieces: { center: Vector3; ends: [Vector3, Vector3] }[] = [];
+      const shaders = new Map<string, string[]>();
+      city.root.traverse((o) => {
+        if (!(o instanceof Mesh)) return;
+        const geometry = o.geometry as BufferGeometry;
+        const { vertexShader, uniforms } = o.material as ShaderMaterial;
+        const world = (v: Vector3) => v.applyMatrix4(o.matrixWorld);
+        if (o.name === "City_traffic" || o.name === "City_windows") {
+          shaders.set(o.name, [...(shaders.get(o.name) ?? []), vertexShader]);
+        }
+        if (o.name === "City_traffic") {
+          const { data, width, height } = (
+            uniforms.uTracks.value as DataTexture
+          ).image as { data: Float32Array; width: number; height: number };
+          const look = geometry.getAttribute("aLook");
+          let dash = 0;
+          for (let i = 0; i < look.count; i++)
+            dash = Math.max(dash, look.getW(i));
+          for (let row = 0; row < height; row++) {
+            for (let k = 0; k + 1 < width; k++) {
+              const a = new Vector3().fromArray(data, (row * width + k) * 4);
+              const b = new Vector3().fromArray(
+                data,
+                (row * width + k + 1) * 4,
+              );
+              const t = b
+                .sub(a)
+                .normalize()
+                .multiplyScalar(dash / 2);
+              pieces.push({
+                center: world(a.clone()),
+                ends: [world(a.clone().sub(t)), world(a.clone().add(t))],
+              });
+            }
+          }
+        } else if (o.name === "City_windows") {
+          const rect = geometry.getAttribute("aRect");
+          const meta = geometry.getAttribute("aMeta");
+          const at = (az: number, t: number, r: number) =>
+            world(new Vector3(r * Math.sin(az), r * t, -r * Math.cos(az)));
+          for (let i = 0; i < rect.count; i++) {
+            const [az0, az1, t0, t1] = [
+              rect.getX(i),
+              rect.getY(i),
+              rect.getZ(i),
+              rect.getW(i),
+            ];
+            const r = meta.getX(i);
+            pieces.push({
+              center: at((az0 + az1) / 2, (t0 + t1) / 2, r),
+              ends: [at(az0, t0, r), at(az1, t1, r)],
+            });
+          }
+        }
+      });
+      // One draw per kind per slot (the roads sit in two).
+      expect([...shaders.keys()].sort()).toEqual([
+        "City_traffic",
+        "City_windows",
+      ]);
+      for (const shader of [...shaders.values()].flat()) {
+        expect(shader).toContain("if (!inView(c))");
+      }
+
+      const shots = [
+        ["overview", model.overview] as const,
+        ...[...model.stations].map(([id, s]) => [id, s.shot] as const),
+      ];
+      const clip = (p: Vector3, mvp: Matrix4) =>
+        new Vector4(p.x, p.y, p.z, 1).applyMatrix4(mvp);
+      const pixels = (c: Vector4) =>
+        new Vector2(c.x / c.w, c.y / c.w).multiply(BUFFER).multiplyScalar(0.5);
+      // The shaders' inView().
+      const inView = (c: Vector4) =>
+        c.w > 0 &&
+        Math.abs(c.x) <= VIEW_MARGIN * c.w &&
+        Math.abs(c.y) <= VIEW_MARGIN * c.w;
+
+      let seen = 0;
+      for (const [id, shot] of shots) {
+        for (const dx of DRIFTS) {
+          for (const dy of DRIFTS) {
+            const camera = new PerspectiveCamera(
+              fitVerticalFov(shot.lens, BUFFER.x / BUFFER.y),
+              BUFFER.x / BUFFER.y,
+              0.05,
+              5000,
+            );
+            camera.position.copy(shot.position);
+            camera.lookAt(shot.target);
+            camera.position.add(
+              new Vector3(dx, dy, 0).applyQuaternion(camera.quaternion),
+            );
+            camera.lookAt(shot.target);
+            camera.updateMatrixWorld();
+            const mvp = camera.projectionMatrix
+              .clone()
+              .multiply(camera.matrixWorldInverse);
+            let span = 0;
+            let depth = Infinity;
+            for (const { center, ends } of pieces) {
+              const c = clip(center, mvp);
+              if (!inView(c)) continue;
+              seen++;
+              const [e0, e1] = ends.map((e) => pixels(clip(e, mvp)));
+              span = Math.max(span, e0.distanceTo(e1));
+              depth = Math.min(depth, c.w);
+            }
+            const where = `${id} drifted (${dx}, ${dy})`;
+            // A few dozen pixels at most, and far behind the room's walls.
+            expect(span, where).toBeLessThan(200);
+            expect(depth, where).toBeGreaterThan(100);
+          }
+        }
+      }
+      // The replay saw the city (the overview and the bench face the window).
+      expect(seen).toBeGreaterThan(0);
+      city.dispose();
+    });
+  },
+);

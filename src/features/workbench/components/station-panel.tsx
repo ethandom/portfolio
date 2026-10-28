@@ -133,15 +133,15 @@ export function StationPanel({
       data-state={leaving ? "closed" : "open"}
       className={cn(
         "absolute z-(--z-overlay) flex flex-col border border-strong bg-bg/85 text-ink outline-none backdrop-blur-md focus-visible:shadow-none",
-        // Narrow: a sheet above the Back key. Wide: docked top right (or
-        // left), clear of the Back key.
+        // Narrow: a sheet above the view switch. Wide: docked top right, or
+        // top left under the sound key, clear of the view switch.
         "inset-x-4 bottom-14 max-h-[min(62dvh,calc(100dvh-8rem))]",
-        "md:inset-x-auto md:top-4 md:bottom-auto md:max-h-[calc(100dvh-5.5rem)]",
+        "md:inset-x-auto md:bottom-auto",
         // Left (the relay's) stays narrower: the seated view's monitor starts
         // about a third of the way in, and it has to stay readable.
         dock === "left"
-          ? "md:left-4 md:w-[min(26rem,30vw)]"
-          : "md:right-4 md:w-[min(28rem,48vw)]",
+          ? "md:top-14 md:left-4 md:max-h-[calc(100dvh-8rem)] md:w-[min(26rem,30vw)]"
+          : "md:top-4 md:right-4 md:max-h-[calc(100dvh-5.5rem)] md:w-[min(28rem,48vw)]",
       )}
     >
       <header className="flex items-start justify-between gap-4 border-b border-hairline py-3 pr-2 pl-4">

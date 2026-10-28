@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Kbd } from "@/components/manual";
-import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PANEL_IDS, type PanelId, type Panels } from "@/features/workbench";
 // Lab files reach into a feature by path: the panel shell isn't public API.
@@ -24,9 +22,8 @@ const LABELS: Record<PanelId, string> = {
 
 /**
  * Each Workbench panel open over a stand-in for the scene (a dusk window
- * wall, warm lamps), with the scene's own chrome: the station keys top left
- * and the Back key bottom right. Pick a panel, or clear the pick (or press
- * Esc) to watch it leave.
+ * wall, warm lamps). The picker sits top left, where the scene's sound key
+ * does. Pick a panel, or clear the pick (or press Esc) to watch it leave.
  */
 export function PanelSpecimen({ panels }: { panels: Panels }) {
   const [open, setOpen] = useState<PanelId | null>("conturo");
@@ -67,16 +64,6 @@ export function PanelSpecimen({ panels }: { panels: Panels }) {
           Specimen · Esc or the active key closes
         </p>
       </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(null)}
-        className="absolute right-4 bottom-4 bg-bg"
-      >
-        Back
-        <Kbd>Esc</Kbd>
-      </Button>
 
       <StationPanel
         content={open ? (panels[open] ?? null) : null}

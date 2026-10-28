@@ -25,6 +25,7 @@ function harness(model: WorkbenchModel) {
   const tweens = new Tweens();
   const monitor = { boot: vi.fn(), idle: vi.fn() };
   const terminal = new Terminal();
+  const sound = vi.fn();
   bindBoard(terminal, model.leds.relay);
   const ctx: ActionContext = {
     model,
@@ -32,6 +33,7 @@ function harness(model: WorkbenchModel) {
     monitor: monitor as unknown as MonitorScreen,
     terminal,
     seconds: (s) => s,
+    sound,
     flags: new Set(),
     claim: () => () => true,
   };
@@ -44,7 +46,7 @@ function harness(model: WorkbenchModel) {
   };
   // Long enough for every sequence to finish (plug-in and boot: ~4 s).
   const settle = () => tick(8);
-  return { ctx, monitor, terminal, tick, settle };
+  return { ctx, monitor, terminal, sound, tick, settle };
 }
 
 /** Each relay LED as 1 (lit) or 0, LED_1 first. */
@@ -123,7 +125,7 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
 
   it("plugs the relay in, boots the terminal, and unplugs", async () => {
     const model = await load();
-    const { ctx, monitor, terminal, tick, settle } = harness(model);
+    const { ctx, monitor, terminal, sound, tick, settle } = harness(model);
     const port = world(model, "USB_Port");
     const before = model.cable.mesh.geometry;
 
@@ -139,6 +141,8 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
     }
     expect(monitor.boot).toHaveBeenCalledOnce();
     expect(terminal.online).toBe(false);
+    // The plug slides and seats as it docks; the board powers up.
+    expect(sound.mock.calls).toEqual([["slide"], ["plug", 0.75], ["boot"]]);
 
     // Booted: the session opens on the log, and the LEDs show its mask,
     // every channel off.
@@ -153,6 +157,7 @@ describe.skipIf(!hasSceneGlb)("scene.glb", () => {
     await ACTIONS.monitor?.play(ctx);
     expect(terminal.online).toBe(true);
     await ACTIONS.usb?.play(ctx);
+    expect(sound).toHaveBeenLastCalledWith("unplug");
     expect(model.plug.object.position).toEqual(model.plug.home);
     expect(lit(model)).toBe("00000000");
     expect(terminal.online).toBe(false);

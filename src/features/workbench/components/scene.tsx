@@ -38,6 +38,7 @@ import {
   readPalette,
   ScopeScreen,
 } from "../lib/screens";
+import type { Sound } from "../lib/sound";
 import type { Terminal } from "../lib/terminal";
 import { easeInOutQuart, Tweens } from "../lib/tweens";
 import { MODEL_URL } from "../lib/urls";
@@ -100,6 +101,7 @@ function actionContext(
   tweens: Tweens,
   monitor: MonitorScreen,
   terminal: Terminal,
+  sound: Sound,
   reduced: boolean,
 ): ActionContext {
   return {
@@ -108,6 +110,7 @@ function actionContext(
     monitor,
     terminal,
     seconds: (s) => (reduced ? 0 : s),
+    sound: (cue, at = 0, level = 1) => sound.play(cue, reduced ? 0 : at, level),
     flags: bench.flags,
     claim: (key) => {
       const token = Symbol(key);
@@ -144,6 +147,7 @@ function place(el: HTMLElement | null, rect: Rect | null | undefined) {
 export function Scene({
   api,
   terminal,
+  sound,
   station,
   zone,
   highlight,
@@ -159,6 +163,8 @@ export function Scene({
   api: Ref<SceneApi>;
   /** The monitor's relayctl session (the app's hidden input types into it). */
   terminal: Terminal;
+  /** Where the objects' actions make their sounds. */
+  sound: Sound;
   station: StationId | null;
   /** The zone to outline (overview only). */
   zone: StationId | null;
@@ -295,6 +301,7 @@ export function Scene({
           tweens,
           screens.monitor,
           terminal,
+          sound,
           reduced,
         ),
       );
@@ -328,6 +335,7 @@ export function Scene({
       tweens,
       screens.monitor,
       terminal,
+      sound,
       reduced,
     );
     ALL_ACTIONS.forEach((action) => action.reset(ctx));
@@ -357,7 +365,7 @@ export function Scene({
         });
         arrive(station);
       });
-  }, [station, model, tweens, reduced, screens, terminal]);
+  }, [station, model, tweens, reduced, screens, terminal, sound]);
 
   useFrame((state, delta) => {
     // After an idle spell the clock's delta spans it: step one frame instead.

@@ -126,6 +126,12 @@ export default function LabPage() {
                 <ArrowUpRightIcon weight="light" />
               </Link>
             </Button>
+            <Button variant="link" asChild>
+              <Link href="/lab/sound">
+                Sound lab
+                <ArrowUpRightIcon weight="light" />
+              </Link>
+            </Button>
           </div>
         </header>
 

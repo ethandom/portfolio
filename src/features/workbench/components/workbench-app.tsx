@@ -12,7 +12,6 @@ import {
 } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ACESFilmicToneMapping } from "three";
-import { Kbd } from "@/components/manual";
 import { useReducedMotion } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -32,9 +31,12 @@ import {
   STATION_PANELS,
 } from "../lib/panels";
 import { DUSK } from "../lib/palette";
+import { Sound } from "../lib/sound";
 import { Terminal } from "../lib/terminal";
+import { shoot, terminalSounds } from "../lib/terminal-sounds";
 import { Loading } from "./loading";
 import { type Layout, Scene, type SceneApi } from "./scene";
+import { SoundKey } from "./sound-key";
 import { StationPanel } from "./station-panel";
 import { RUN_COMMAND } from "./try-command";
 import { TerminalInput, type TerminalInputHandle } from "./terminal-input";
@@ -45,11 +47,13 @@ const TERMINAL_HITS: ReadonlySet<HitId> = new Set(["monitor", "relay"]);
 
 /**
  * The Workbench scene with its DOM layer: the zone outline, the hover label
- * that follows the pointer, the Back key, a keyboard route to every station
+ * that follows the pointer, the sound key, a keyboard route to every station
  * and object (one key each, visible while it has focus), and the panel: a
  * 2D overlay that a station opens on arrival or an object opens on click.
  * At the workbench, once the relay board has booted, the monitor is a
- * relayctl terminal: a hidden input takes the keys.
+ * relayctl terminal: a hidden input takes the keys. Sound (lib/sound.ts):
+ * lofi underneath, and a soft effect for each hover, trip, panel, object
+ * and keystroke.
  */
 export function WorkbenchApp({ panels }: { panels: Panels }) {
   const reduced = useReducedMotion();
@@ -59,6 +63,7 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
   const [pointed, setPointed] = useState<HitId | null>(null);
   const [keyed, setKeyed] = useState<HitId | null>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);
+  const [sound] = useState(() => new Sound());
   // Whether the visitor opened or closed a panel since the last station change.
   const chose = useRef(false);
   // Which objects sit at each station, from the model once it loads.
@@ -84,6 +89,8 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
   const typing = station === "workbench" && online;
 
   function go(next: StationId | null, byKeyboard = false) {
+    // A whoosh with the camera's glide (none when it jumps).
+    if (next !== station && !reduced) sound.play(next ? "travel" : "return");
     refocus.current = byKeyboard;
     chose.current = false;
     setPointedZone(null);
@@ -94,27 +101,24 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
     setStation(next);
   }
 
-  /** Esc or the Back key: an open panel closes first. */
+  /**
+   * Esc, or a click on nothing clickable: an open panel closes first, then
+   * the camera goes back to the overview (no Back key, Ethan 2026-10-28).
+   */
   function back(byKeyboard = false) {
     if (panel) close();
-    else go(null, byKeyboard);
-  }
-
-  /**
-   * A click on nothing clickable closes an open panel but never leaves the
-   * station: only Esc and the Back key do that (Ethan 2026-10-17).
-   */
-  function dismiss() {
-    if (panel) close();
+    else if (station) go(null, byKeyboard);
   }
 
   function open(id: PanelId | undefined) {
     if (!id || !panels[id]) return;
+    if (id !== panel) sound.play("open");
     chose.current = true;
     setPanel(id);
   }
 
   function close() {
+    if (panel) sound.play("close");
     chose.current = true;
     setPanel(null);
   }
@@ -127,6 +131,34 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
     if (!chose.current) open(STATION_PANELS[id]);
   }
 
+  // Sound runs while the room is on screen: from its first frame until the
+  // route unmounts or Next's Activity hides it (back on the Manual).
+  useEffect(() => {
+    if (!layout) return;
+    sound.attach();
+    return () => sound.detach();
+  }, [sound, layout]);
+
+  // A soft tick as the pointer (or keyboard focus) finds a zone. Not for
+  // objects: the pointer crosses them all the time at a station (Ethan
+  // 2026-10-28).
+  useEffect(() => {
+    if (zone) sound.play("hover");
+  }, [sound, zone]);
+  const hovered = pointed ?? keyed;
+
+  // The bench terminal's keys, Enter, errors, and the relay clicking.
+  useEffect(() => {
+    let before = shoot(terminal);
+    return terminal.subscribe(() => {
+      const after = shoot(terminal);
+      for (const { cue, delay } of terminalSounds(before, after)) {
+        sound.play(cue, delay);
+      }
+      before = after;
+    });
+  }, [terminal, sound]);
+
   useEffect(() => {
     if (!refocus.current) return;
     refocus.current = false;
@@ -134,7 +166,7 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
   }, [station]);
 
   // The board finished booting: the keyboard goes to the terminal, unless
-  // focus is somewhere else on purpose (a panel, the Back key).
+  // focus is somewhere else on purpose (a panel, the sound key).
   useEffect(() => {
     if (!typing) return;
     const at = document.activeElement;
@@ -230,20 +262,21 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
           alpha: false,
           stencil: true,
         }}
-        onPointerMissed={dismiss}
+        onPointerMissed={() => back()}
       >
         <Suspense fallback={null}>
           <Scene
             api={api}
             terminal={terminal}
+            sound={sound}
             station={station}
             zone={zone}
-            highlight={pointed ?? keyed}
+            highlight={hovered}
             reduced={reduced}
             outline={outline}
             onHoverZone={setPointedZone}
             onHoverHit={setPointed}
-            onGo={(id) => (id ? go(id) : dismiss())}
+            onGo={(id) => (id ? go(id) : back())}
             onReady={setLayout}
             onAct={(id) => {
               open(HIT_PANELS[id]);
@@ -271,58 +304,49 @@ export function WorkbenchApp({ panels }: { panels: Panels }) {
         {pointed && HIT_LABELS[pointed]}
       </div>
 
-      <nav
-        aria-label={station ? `${STATION_LABELS[station]} objects` : "Stations"}
-        className="absolute top-4 left-4"
-      >
-        <ul ref={keys}>
-          {station
-            ? layout?.[station]?.map((id) => (
-                <li key={id} className="sr-only focus-within:not-sr-only">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onFocus={() => setKeyed(id)}
-                    onBlur={() => setKeyed(null)}
-                    onClick={() => api.current?.act(id)}
-                    className="bg-bg"
-                  >
-                    {HIT_LABELS[id]}
-                  </Button>
-                </li>
-              ))
-            : STATION_IDS.filter((id) => layout?.[id]).map((id) => (
-                <li key={id} className="sr-only focus-within:not-sr-only">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onFocus={() => setKeyedZone(id)}
-                    onBlur={() => setKeyedZone(null)}
-                    onClick={(e) => go(id, byKeyboard(e))}
-                    className="bg-bg"
-                  >
-                    Go to {STATION_LABELS[id]}
-                  </Button>
-                </li>
-              ))}
-        </ul>
-      </nav>
+      {/* Top left: the sound key, then the keyboard's keys (each shows while focused). */}
+      <div className="absolute top-4 left-4 flex items-start gap-2">
+        <SoundKey sound={sound} />
+        <nav
+          aria-label={
+            station ? `${STATION_LABELS[station]} objects` : "Stations"
+          }
+        >
+          <ul ref={keys}>
+            {station
+              ? layout?.[station]?.map((id) => (
+                  <li key={id} className="sr-only focus-within:not-sr-only">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onFocus={() => setKeyed(id)}
+                      onBlur={() => setKeyed(null)}
+                      onClick={() => api.current?.act(id)}
+                      className="bg-bg"
+                    >
+                      {HIT_LABELS[id]}
+                    </Button>
+                  </li>
+                ))
+              : STATION_IDS.filter((id) => layout?.[id]).map((id) => (
+                  <li key={id} className="sr-only focus-within:not-sr-only">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onFocus={() => setKeyedZone(id)}
+                      onBlur={() => setKeyedZone(null)}
+                      onClick={(e) => go(id, byKeyboard(e))}
+                      className="bg-bg"
+                    >
+                      Go to {STATION_LABELS[id]}
+                    </Button>
+                  </li>
+                ))}
+          </ul>
+        </nav>
+      </div>
 
       <TerminalInput ref={term} terminal={terminal} active={typing} />
-
-      {station && (
-        // Bottom right: the Next dev badge sits bottom left.
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => go(null, byKeyboard(e))}
-          className="absolute right-4 bottom-4 bg-bg"
-        >
-          Back
-          {/* With a panel open, Esc closes the panel (its own key says so). */}
-          {!panel && <Kbd>Esc</Kbd>}
-        </Button>
-      )}
 
       <StationPanel
         content={panel ? (panels[panel] ?? null) : null}

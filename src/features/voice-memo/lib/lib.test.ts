@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AUDIO_FORMATS, baseMime, formatOf, pickRecordingType } from "./audio-format";
 import { formatClock, spokenLength } from "./limits";
 import { canRetry, checkContact, sendFailure } from "./messages";
-import { micProblemFrom, supportProblem } from "./mic";
+import { micProblemFrom, supportProblem, untilLive } from "./mic";
 
 describe("clock", () => {
   it("formats m:ss", () => {
@@ -139,5 +139,42 @@ describe("sendFailure", () => {
   it("falls back to a generic retry", () => {
     expect(sendFailure(502, { ok: false, error: "upstream" }).message).toMatch(/couldn't send/i);
     expect(sendFailure(500, null).offerEmail).toBe(true);
+  });
+});
+
+describe("untilLive", () => {
+  /** A stand-in mic track: muted or not, and able to unmute or end. */
+  const track = (muted: boolean) => {
+    const t = Object.assign(new EventTarget(), { muted, readyState: "live" as MediaStreamTrackState });
+    return t as typeof t & MediaStreamTrack;
+  };
+
+  it("goes at once with a mic that already delivers sound", async () => {
+    await expect(untilLive(track(false), new AbortController().signal)).resolves.toBe(true);
+  });
+
+  it("waits for a muted mic to unmute (access allowed)", async () => {
+    const mic = track(true);
+    const live = untilLive(mic, new AbortController().signal);
+    mic.dispatchEvent(new Event("unmute"));
+    await expect(live).resolves.toBe(true);
+  });
+
+  it("gives up if the mic ends, the wait is aborted, or it times out", async () => {
+    const ended = track(true);
+    const a = untilLive(ended, new AbortController().signal);
+    ended.dispatchEvent(new Event("ended"));
+    await expect(a).resolves.toBe(false);
+
+    const leaving = new AbortController();
+    const b = untilLive(track(true), leaving.signal);
+    leaving.abort();
+    await expect(b).resolves.toBe(false);
+
+    vi.useFakeTimers();
+    const c = untilLive(track(true), new AbortController().signal, 1000);
+    vi.advanceTimersByTime(1000);
+    await expect(c).resolves.toBe(false);
+    vi.useRealTimers();
   });
 });

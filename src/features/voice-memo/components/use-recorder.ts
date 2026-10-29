@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } fro
 import { prefersReducedMotion } from "@/components/motion";
 import { formatOf, pickRecordingType, type AudioFormat } from "../lib/audio-format";
 import { AUDIO_BITS_PER_SECOND, MAX_SECONDS } from "../lib/limits";
-import { micProblemFrom, supportProblem, type MicProblem } from "../lib/mic";
+import { micProblemFrom, supportProblem, untilLive, type MicProblem } from "../lib/mic";
 
 export type Clip = {
   blob: Blob;
@@ -118,8 +118,10 @@ function startMeter(s: Session, meter: RefObject<HTMLElement | null>) {
 
 /**
  * The microphone side of the voice memo: ask, record (auto-stop at the
- * limit), hand back a clip. The mic is released the moment recording stops,
- * on any failure, and on unmount.
+ * limit), hand back a clip. "asking" lasts until the recorder has really
+ * started on a mic that delivers sound, so the clock never runs while the
+ * browser or the OS is still asking. The mic is released the moment
+ * recording stops, on any failure, and on unmount.
  */
 export function useRecorder(meter: RefObject<HTMLElement | null>) {
   const [state, setState] = useState<RecorderState>("idle");
@@ -129,6 +131,8 @@ export function useRecorder(meter: RefObject<HTMLElement | null>) {
   const session = useRef<Session | null>(null);
   // Bumped on unmount, so a permission prompt answered afterwards is ignored.
   const attempts = useRef(0);
+  // Aborted on unmount: stops waiting for a muted mic to come live.
+  const waiting = useRef<AbortController | null>(null);
 
   function fail(s: Session | null, next: MicProblem) {
     if (s) {
@@ -178,6 +182,19 @@ export function useRecorder(meter: RefObject<HTMLElement | null>) {
       stopTracks(stream);
       return;
     }
+    const wait = new AbortController();
+    waiting.current = wait;
+    const live = await untilLive(stream.getAudioTracks()[0], wait.signal);
+    if (waiting.current === wait) waiting.current = null;
+    if (attempt !== attempts.current) {
+      stopTracks(stream);
+      return;
+    }
+    if (!live) {
+      stopTracks(stream);
+      fail(null, "failed");
+      return;
+    }
 
     let recorder: MediaRecorder;
     try {
@@ -217,6 +234,20 @@ export function useRecorder(meter: RefObject<HTMLElement | null>) {
       setClip({ blob, url: URL.createObjectURL(blob), seconds, format: formatOf(type) ?? format });
     };
     recorder.onerror = () => fail(s, "failed");
+    // The clock, the meter and the Stop key wait for the recorder to say it
+    // has started, not just been asked to.
+    recorder.onstart = () => {
+      if (s.cancelled) return;
+      s.startedAt = performance.now();
+      setElapsed(0);
+      setState("recording");
+      s.timer = window.setInterval(() => {
+        const seconds = (performance.now() - s.startedAt) / 1000;
+        setElapsed(Math.min(seconds, MAX_SECONDS));
+        if (seconds >= MAX_SECONDS) stop();
+      }, TICK_MS);
+      startMeter(s, meter);
+    };
     // A mic unplugged mid-take ends the take; what was recorded is kept.
     stream.getAudioTracks()[0]?.addEventListener("ended", stop);
 
@@ -226,17 +257,7 @@ export function useRecorder(meter: RefObject<HTMLElement | null>) {
       recorder.start(1000);
     } catch (error) {
       fail(s, micProblemFrom(error));
-      return;
     }
-    s.startedAt = performance.now();
-    setElapsed(0);
-    setState("recording");
-    s.timer = window.setInterval(() => {
-      const seconds = (performance.now() - s.startedAt) / 1000;
-      setElapsed(Math.min(seconds, MAX_SECONDS));
-      if (seconds >= MAX_SECONDS) stop();
-    }, TICK_MS);
-    startMeter(s, meter);
   }
 
   /** Drops the clip (and any problem) to start over. */
@@ -253,8 +274,10 @@ export function useRecorder(meter: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const attemptsRef = attempts;
     const sessionRef = session;
+    const waitingRef = waiting;
     return () => {
       attemptsRef.current += 1;
+      waitingRef.current?.abort();
       const s = sessionRef.current;
       if (!s) return;
       s.cancelled = true;

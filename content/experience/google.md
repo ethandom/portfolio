@@ -13,6 +13,6 @@ figure:
 stack: [Java, Linear Algebra, Machine Learning]
 project: chess-engine
 highlights:
-  - Designed a chess engine with alpha-beta pruning that reaches 500k–650k evaluations per second, used to benchmark a reinforcement-learning agent.
+  - Designed a chess engine with alpha-beta pruning that reaches 500k–650k evaluations per second, motivated by benchmarking a reinforcement-learning agent.
   - Researched how gradient descent and cost functions are applied in LLMs.
 ---
